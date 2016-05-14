@@ -164,6 +164,8 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should it be possible to specify the colorspace parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colospace: ["p3", "linear-rec-2020"]});</code> would mean use p3 if possible; if not fallback to linear-rec-2020.  Since color spaces are already feature detectable, this would be a convenience feature.
 
+* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for compositing in linear space. Referencing a remote ICC profile may be problematic because getContext() is synchronous. Could solve that by using a Blob rather than a URI for specifying the ICC profile.
+
 ## Proposal History
 
 This proposal was originally incubated in the Khronos 3D Web group, with the participation of engineers from Google, Microsoft, Apple, Nvidia, and others.
