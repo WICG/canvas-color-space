@@ -174,4 +174,5 @@ This proposal was originally incubated in the Khronos 3D Web group, with the par
 
 This propsal was further discussed in the WHATWG github issue tracker and contains modifications based on feedback that was provided in the following thread: https://github.com/whatwg/html/issues/299
 
+The current venue for discussing this proposal is a [W3C WICG Discourse thread](https://discourse.wicg.io/t/canvas-color-spaces-wide-gamut-and-high-bit-depth-rendering/1505)
 
