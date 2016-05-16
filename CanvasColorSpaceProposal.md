@@ -34,7 +34,7 @@ Add a canvas color space creation parameter that allows user code to chose betwe
 
 ### Processing Model
 
-#### The color-space canvas creation parameter
+#### The colorSpace canvas creation parameter
 
 IDL:
 <pre>
@@ -48,13 +48,13 @@ enum CanvasColorSpace {
 
 dictionary CanvasRenderingContext2DSettings {
   boolean alpha = true;
-  CanvasColorSpace color-space = "legacy-srgb";
+  CanvasColorSpace colorSpace = "legacy-srgb";
 };
 </pre>
 
 Example:
 <pre>
-canvas.getContext('2d', { color-space: "srgb"})
+canvas.getContext('2d', { colorSpace: "srgb"})
 </pre>
 
 #### The "legacy-srgb" color space
@@ -72,7 +72,7 @@ This mode assures backwards compatible behavior and is designed to accomodate us
 * All content drawn into the canvas must be color corrected to sRGB
 * displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
 * Compositing, filtering and interpolation operations must perform all arithmetic in '''linear''' sRGB space.
-* toDataURL/toBlob produce resources tagged as being in the sRGB colorspace
+* toDataURL/toBlob produce resources tagged as being in the sRGB color space
 * Images with no color profile, when drawn to the canvas, are assumed to already be in the sRGB color space.
 
 #### The "linear-rec-2020" color space
@@ -88,14 +88,16 @@ The "optimal" option lets the user agent decide which space is optimal for the c
 * May select a color space that is not defined in this specification.
 * The user agent must select a color space with a sufficiently wide gamut to avoid undue gamut clipping when displaying to the current display device.
 * The user agent must select a color space with sufficient bit-depth to avoid undue banding given the current display device
-* The alpha component must have at least 8 bits.
-* The user agent must select the colorspace that is the most efficient in terms of memory usage, while respecting all the other rules. If more than one color-space match the criteria
+* The user agent must select the color space that is the most efficient in terms of memory usage, while respecting all the other rules. If more than one color space matches the criteria
 
 #### The "optimal-strict" color space
-Similar to "optimal", but with the added constraint that the color space must perform compositing, filtering and interpolation arithmetic in linear space. This mode may not select "legacy-srgb".
+Similar to "optimal", but with additional constraints:
+* Canvas operations must perform compositing, filtering and interpolation arithmetic in linear space.
+* This mode may not select "legacy-srgb".
+* The alpha component must have at least 8 bits.
 
 #### Non-standard color spaces
-User agents may support color spaces not defined in this specification. An important use case for non-standard spaces is to provided implementer with some latitude to create color spaces that are high-performing "optimal" matches for certain combinations of display, CPU and GPU technologies.
+User agents may support color spaces not defined in this specification. An important use case for non-standard spaces is to provided implementers with some latitude to create color spaces that are high-performing "optimal" matches for certain combinations of display, CPU and GPU technologies.
 
 #### Feature detection
 
@@ -143,7 +145,7 @@ Implementors should be mindful of fingerprinting in their designs of non-standar
 
 ### Implementation notes 
 * Because float16 arithmetic is supported by most GPUs, but not by CPUs, implementations should probably opt to not support linear-rec-2020 on hardware that does not provide any native support.
-* When available, the srgb colorspace should use GPU API extensions for sRGB support. This will streamline the conversion overhead for performing filtering and compositing in linear space.
+* When available, the srgb color space should use GPU API extensions for sRGB support. This will streamline the conversion overhead for performing filtering and compositing in linear space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
@@ -151,7 +153,7 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 ## Unresolved Issues
 
-* Should more standard colorspaces be added? We must strike a balance between providing useful interoperable options and avoiding an over-spec'ing. Risk associated with over-spec'ing include: high implementation burden, compatibility risks, shipping is forever. Suggestions for additional color spaces include: 
+* Should more standard color spaces be added? We must strike a balance between providing useful interoperable options and avoiding an over-spec'ing. Risk associated with over-spec'ing include: high implementation burden, compatibility risks, shipping is forever. Suggestions for additional color spaces include: 
     * DCI-P3 or Apple's P3 (8bpc possibly 10bpc?). One of the appeals of P3 is to match the media query API (c.f. https://drafts.csswg.org/mediaqueries-4/#color-gamut). It also offers a reasonable halfway compromise between sRGB and rec-2020, and it is a good match for some current display profiles.
     * 8bpc rec-2020, with gamma compression. This color space uses the same gamma curve as sRGB, so it is convenient to support on current GPUs.  Would offer wide gamut with low memory cost.  There are concerns that this space may be of limited usefulness due to potential banding issues, since the gamut is so wide.
     * A space based on AdobeRGB with 8bpc (can't "Adobe" in the name). This space would be close to the display profile spaces of many current displays. Could use the same primaries as AdobeRGB with the gamma curve of sRGB for ease of implementation.
@@ -162,7 +164,7 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should linear-rec-2020 or non-standard color spaces be allowed to operate outside of the [0,1] range in 2D canvases? The current definitions of compositing and blending modes were not designed with this in mind.
 
-* Should it be possible to specify the colorspace parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colospace: ["p3", "linear-rec-2020"]});</code> would mean use p3 if possible; if not fallback to linear-rec-2020.  Since color spaces are already feature detectable, this would be a convenience feature.
+* Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colospace: ["p3", "linear-rec-2020"]});</code> would mean use p3 if possible; if not fallback to linear-rec-2020.  Since color spaces are already feature detectable, this would be a convenience feature.
 
 * Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for compositing in linear space. Referencing a remote ICC profile may be problematic because getContext() is synchronous. Could solve that by using a Blob rather than a URI for specifying the ICC profile.
 
