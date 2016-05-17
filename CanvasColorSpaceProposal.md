@@ -133,10 +133,9 @@ interface ImageData {
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 
 ### Limitations 
-* No support for arbitrary color spaces and bit depth.  This capability could be added in the future.  The current proposal attempts to solve the problem with a minimal API surface, and keeps the implementation scope reasonable.  The extensible design will allow us to extend the capabilities in the future if necessary.  The rec-2020 space was chosen for its very wide gamut and its non-virtual primary colors, which strikes a balance that is deemed practical.
-* toDataURL is lossy when us on a canvas that is in the linear-rec-2020 space. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
-* ImageData uses float32, which is inefficient due to memory consumption and necessary conversion operations. Float32 was chosen because it is convenient for manipulation (e.g. image processing) due to its native support in JavaScript (and current CPUs). A possible extension would be to add and option for rec-2020 content to be encoded as float16s packed into Uint16 values.
-
+* No support for arbitrary user-defined color spaces and bit depths.  This capability could be added in the future.  The current proposal attempts to solve the problem with a minimal API surface, and keeps the implementation scope reasonable.  The extensible design will allow us to extend the capabilities in the future if necessary.  The rec-2020 space was chosen for its very wide gamut and its non-virtual primary colors, which strikes a balance that is deemed practical.
+* toDataURL is lossy, depending on the file format, when used on a canvas that is in the linear-rec-2020 space. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
+* ImageData uses float32, which is inefficient due to memory consumption and necessary conversion operations. Float32 was chosen because it is convenient for manipulation (e.g. image processing) due to its native support in JavaScript (and current CPUs). A possible extension would be to add and option for linear-rec-2020 content to be encoded as float16s packed into Uint16 values.
 
 ### Security and privacy issues
 Some current implementations of CanvasRenderingContext2D color correct image resources for the display as they are drawn to the canvas. In other words, the canvas is in output referred color space. This is a known fingerprinting vulnerability since it exposes the user's display's color profile to scripts via getImageData.  The current proposal does not solve the fingerprinting issue because it will still exist in legacy-srgb.  To solve the problem, implementations must color-correct CSS colors, then by extension, legacy-srgb mode will be in the true sRGB color space by virtue of the color matching rules outlined above.  When that becomes the case, images drawn to canvases will be color corrected to sRGB, which solves the problem.  There is resistance to adopting this model because going through an sRGB intermediate is lossy compared to directly color correcting images for the display in a single pass (may cause banding and gamut clipping).  This feature proposal mitigates the lossiness argument thanks to the linear-rec-2020 option.
@@ -145,7 +144,8 @@ Implementors should be mindful of fingerprinting in their designs of non-standar
 
 ### Implementation notes 
 * Because float16 arithmetic is supported by most GPUs, but not by CPUs, implementations should probably opt to not support linear-rec-2020 on hardware that does not provide any native support.
-* When available, the srgb color space should use GPU API extensions for sRGB support. This will streamline the conversion overhead for performing filtering and compositing in linear space.
+* When possible, the srgb color space should use GPU API extensions for sRGB support. This will streamline the conversion overhead for performing filtering and compositing in linear space.
+* Implementations of non-standard (i.e. vendor-specific) color spaces should be designed for optimal performance. For example wide gamut spaces could use the sRGB tranfer curves to take advantage of hardware support.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
@@ -160,13 +160,14 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should non-standard color spaces use vendor prefixes to avoid compatibility issues or name clashes?
 
-* Should black level compensation be implied in "linear spaces", such that (0,0,0) always represent absolute black in linear color values?
+* Should black level compensation be implied in "linear spaces", such that (0,0,0) always represents absolute black in linear color values?
 
 * Should linear-rec-2020 or non-standard color spaces be allowed to operate outside of the [0,1] range in 2D canvases? The current definitions of compositing and blending modes were not designed with this in mind.
 
 * Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colospace: ["p3", "linear-rec-2020"]});</code> would mean use p3 if possible; if not fallback to linear-rec-2020.  Since color spaces are already feature detectable, this would be a convenience feature.
 
-* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for compositing in linear space. Referencing a remote ICC profile may be problematic because getContext() is synchronous. Could solve that by using a Blob rather than a URI for specifying the ICC profile.
+* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for compositing in linear space. Referencing a remote ICC profile may be problematic because getContext() is synchronous. Could solve that by taking the profile arg as an ArrayBuffer (created from an ICC file Blob) rather than a URI for specifying the ICC profile file.
+    * Tenative resolution: Not for now. This would be very hard to implement efficiently, and there are potential interop issues with ICC support.
 
 ## Proposal History
 
