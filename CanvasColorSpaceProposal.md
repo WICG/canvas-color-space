@@ -170,9 +170,9 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 ## Proposal History
 
-This proposal was originally incubated in the Khronos 3D Web group, with the participation of engineers from Google, Microsoft, Apple, Nvidia, and others.
+This propsal was originally incubated in the WHATWG github issue tracker and incorporates feedback that was provided in the following thread: https://github.com/whatwg/html/issues/299
 
-This propsal was further discussed in the WHATWG github issue tracker and contains modifications based on feedback that was provided in the following thread: https://github.com/whatwg/html/issues/299
+This proposal was further discussed in the Khronos WebGL working group, with the participation of engineers from Apple, Google, Microsoft, Mozilla,  Nvidia, and others.
 
 The current venue for discussing this proposal is a [W3C WICG Discourse thread](https://discourse.wicg.io/t/canvas-color-spaces-wide-gamut-and-high-bit-depth-rendering/1505)
 
