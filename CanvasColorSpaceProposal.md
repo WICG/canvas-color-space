@@ -50,6 +50,10 @@ dictionary CanvasRenderingContext2DSettings {
   boolean alpha = true;
   CanvasColorSpace colorSpace = "legacy-srgb";
 };
+
+partial interface CanvasRenderingContext2D {
+  CanvasRenderingContext2DSettings settings;
+};
 </pre>
 
 Example:
@@ -99,9 +103,13 @@ Similar to "optimal", but with additional constraints:
 #### Non-standard color spaces
 User agents may support color spaces not defined in this specification. An important use case for non-standard spaces is to provided implementers with some latitude to create color spaces that are high-performing "optimal" matches for certain combinations of display, CPU and GPU technologies.
 
-#### Feature detection
+#### The setting attribute on rendering contexts
 
-Rendering context objects (2d, WebGL) are to expose a new "settings" attribute, which represents the settings that were successfully applied at context creation time.
+Rendering context objects (2d, WebGL) are to expose a new "settings" attribute, which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for the requested context type, as well as the result of any color space selection logic, if applicable. For example, if the "optimal" color space is requested at context creation time, the settings attribute will reflect the concrete color space was selected as optimal.
+
+##### Feature detection
+
+The settings attribute can be use to determine whether the requested color space was honored by getContext(). This gives apps a way to query the user agent to determine whether a given color space is supported. The absence of a settings attribute would indicate that colorSpace is not supported.
 
 Note: An alternative approach that was considered was to augment the probablySupportsContext() API by making it check the second argument.  That approach is difficult to consolidate with how dictionary argument are meant to work, where unsupported entries are just ignored.
 
