@@ -103,9 +103,12 @@ Similar to "optimal", but with additional constraints:
 #### Non-standard color spaces
 User agents may support color spaces not defined in this specification. An important use case for non-standard spaces is to provided implementers with some latitude to create color spaces that are high-performing "optimal" matches for certain combinations of display, CPU and GPU technologies.
 
-#### The setting attribute on rendering contexts
+#### Compositing the canvas element
+Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
 
-Rendering context objects (2d, WebGL) are to expose a new "settings" attribute, which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for the requested context type, as well as the result of any color space selection logic, if applicable. For example, if the "optimal" color space is requested at context creation time, the settings attribute will reflect the concrete color space was selected as optimal.
+#### The context attributes
+
+2D rendering contexts are to expose a new getContextAttributes() method, that works much like the method of the same name on WebGLRenderingContext. The method returns the "actual context attributes" which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for 2D contexts, as well as the result of any color space selection logic, if applicable. For example, if the "optimal" color space is requested at context creation time, the "actual context attributes" will reflect the concrete color space was selected as optimal.
 
 ##### Feature detection
 
