@@ -30,7 +30,10 @@ Some implementations convert images drawn to canvases to the sRGB color space. T
 
 ## Proposed Solution
 
-Add a canvas color space creation parameter that allows user code to chose between backwards compatible behavior and color managed behaviors.  Color space support is also extended to image storage intefaces that interact with canvases, such as CanvasPattern, ImageData and ImageBitmap.
+* Clearly define the color space of canvases.  Most current browser implementations are either color-managed or are currently actively working on becoming color-managed.  Therefore, it will be possible to specify that the default color space of canvases as 'srgb' instead of leaving it undefined in the spec (as is currently the case due to lack of interoperability).
+* Add a canvas context creation attribute to specify a color space.
+* Add a canvas context creation attribute to specify a numeric format for storing pixel values.
+* Color space and numeric format parameters are also extended to image storage interfaces that interact with canvases, such as CanvasPattern, ImageData and ImageBitmap.
 
 ### Processing Model
 
@@ -39,92 +42,103 @@ Add a canvas color space creation parameter that allows user code to chose betwe
 IDL:
 <pre>
 enum CanvasColorSpace {
-  "legacy-srgb",
-  "srgb",
-  "linear-rec-2020",
-  "optimal",
-  "optimal-strict"
+  "srgb", // default
+  "rec2020",
+  "p3",
 };
 
-dictionary CanvasRenderingContext2DSettings {
-  boolean alpha = true;
-  CanvasColorSpace colorSpace = "legacy-srgb";
+enum CanvasPixelFormat {
+  "8-8-8-8", // default
+  "10-10-10-2",
+  "12-12-12-12",
+  "float16",
+};
+
+partial dictionary CanvasRenderingContext2DSettings {
+  CanvasColorSpace colorSpace = "srgb";
+  CanvasPixelFormat pixelFormat = "8-8-8-8";
+  boolean linearPixelMath = false;
 };
 
 partial interface CanvasRenderingContext2D {
-  CanvasRenderingContext2DSettings settings;
+  CanvasRenderingContext2DSettings getContextAttributes();
 };
 </pre>
 
 Example:
 <pre>
-canvas.getContext('2d', { colorSpace: "srgb"})
+canvas.getContext('2d', { colorSpace: "p3", pixelFormat: "10-10-10-2", linearPixelMath: true});
 </pre>
 
-#### The "legacy-srgb" color space
-
-This mode assures backwards compatible behavior and is designed to accomodate use cases that require colors to match CSS on implementation that do not color-manage CSS.
-* Guarantees that color values used as fillStyle or strokeStyle match the appearance of the same color value when it is used in CSS.
-* Color management behavior is implementation specific, may not use strict sRGB space, but is expected to be near sRGB. For example, could be display referred color space.
-* toDataURL/toBlob produce resources with no color profile (backwards compat)
-* Image resources with no color profile are never color corrected (backwards compat). This rule and the previous one allow for lossless toDataURL/drawImage round trips, which is a significant use case.
 
 #### The "srgb" color space
 
-* May break color matching with CSS on implementations that do not color-manage CSS.
-* 8 bit unsigned integers per color component.
-* All content drawn into the canvas must be color corrected to sRGB
-* displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
-* Compositing, filtering and interpolation operations must perform all arithmetic in '''linear''' sRGB space.
-* toDataURL/toBlob produce resources tagged as being in the sRGB color space
-* Images with no color profile, when drawn to the canvas, are assumed to already be in the sRGB color space.
+* Guarantees that color values used as fillStyle or strokeStyle exactly match the appearance of the same color value when it is used in CSS.
+* On implementations that do not color-manage CSS colors, the canvas "srgb" color space must not be color-managed either, in order to preserve color-matching between CSS and canvas-rendered content. This situation shall be referred to as the "legacy behavior".
+* All content drawn into the canvas must be color corrected to sRGB. Exception: User agents that implement the legacy behavior must apply color correction steps that match the color correction that is applied to image image resource that are displayed via CSS.
+* Displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
+* toDataURL/toBlob produce resources tagged as being in the sRGB color space, if the encoding format supports colorspace tagging or embedded color profiles. Exception: User agents that implement the legacy behavior must not encode any color space metadata.
+* Images with no color profile, when drawn to the canvas, are assumed to already be in the canvas's color space, and require no color transformation.
 
-#### The "linear-rec-2020" color space
-* Color space provided for wide gamut and high dynamic range rendering.
-* User agents may decide not to support the mode, based on host machine capabilities
-* Uses 16-bit floating point representation.
-* The color space corresponds to ITU-R Recommendation BT.2020, '''without gamma compression'''.
-* toDataURL/toBlob convert image data to the rec-2020 color space (with gamma), and produce image resources with at least 12 bits per color component, if the format supports it. Thus, in the case of the png format, which supports 8 or 16 bits per component, 16bpc would be used.
-* Image with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to linear-rec-2020 for the purpose of the draw.
+#### The "rec2020" color space
+* Support is optional.
+* User agents that select the rec2020 color gamut in CSS media queries must support this color space.
+* The color space corresponds to ITU-R Recommendation BT.2020.
+* toDataURL/toBlob convert image data to the rec-2020 color space.
+* Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to rec2020 for the purpose of the draw.
 
-#### The "optimal" color space
-The "optimal" option lets the user agent decide which space is optimal for the current display device based on the device's capabilities and color profile characteristics.
-* May select a color space that is not defined in this specification.
-* The user agent must select a color space with a sufficiently wide gamut to avoid undue gamut clipping when displaying to the current display device.
-* The user agent must select a color space with sufficient bit-depth to avoid undue banding given the current display device
-* The user agent must select the color space that is the most efficient in terms of memory usage, while respecting all the other rules. If more than one color space matches the criteria
+#### The "p3" color space
+* Support is optional.
+* User agents that select either of the the p3 or the rec2020 color gamuts in CSS media queries must support this color space.
+* The color space corresponds to the DCI P3 specification (TODO: add link).
+* toDataURL/toBlob convert image data to the p3 space.
+* Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to p3 for the purpose of the draw.
 
-#### The "optimal-strict" color space
-Similar to "optimal", but with additional constraints:
-* Canvas operations must perform compositing, filtering and interpolation arithmetic in linear space.
-* This mode may not select "legacy-srgb".
-* The alpha component must have at least 8 bits.
+#### The pixelFormat context creation attribute
+The pixelFormat attributes specifies the numeric types to be used for storing pixel values.
+* Support for "8-8-8-8" is mandatory. All other formats ar optional.
+* When an unsupported format is requested, the format shall fall back to "8-8-8-8".
+* With formats that use integer numeric types for the color channels, the canvas pixel buffer shall store gamma-corrected color values, using the transfer curves prescribed by the specification of the current color space.
+* With formats that use floating-point numeric types for the color channels, the canvas pixel buffer shall store non-gamma-corrected (a.k.a linear) color values.
+
+#### Selecting the best color space match for the user agent's display device
+<pre>
+var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020" : 
+    (window.matchMedia("(color-gamut: p3)").matches ? "p3" : "srgb");
+</pre>
+
+#### Selecting the best pixelFormat for the user agent's display device
+Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
+
+#### The linearPixelMath context creation attribute
+The linerPixelMath context creation attribute indicates whether gamma-corrected pixel values should be transiently converted to linear space for performing arithmetic on color values.
+* Defaults to false.
+* Has no effect if the pixelFormat uses floating-point numeric types.
+* Affects the behavior of: globalCompositeOperation, image resampling performed by drawImage, gradient interpolation.
 
 #### Non-standard color spaces
-User agents may support color spaces not defined in this specification. An important use case for non-standard spaces is to provided implementers with some latitude to create color spaces that are high-performing "optimal" matches for certain combinations of display, CPU and GPU technologies.
+For future consideration: support could be added for color space defined using the [CSS @color-profile rule](https://www.w3.org/TR/css-color-4/#at-profile).
 
 #### Compositing the canvas element
 Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
 
-#### The context attributes
+#### Feature detection
 
-2D rendering contexts are to expose a new getContextAttributes() method, that works much like the method of the same name on WebGLRenderingContext. The method returns the "actual context attributes" which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for 2D contexts, as well as the result of any color space selection logic, if applicable. For example, if the "optimal" color space is requested at context creation time, the "actual context attributes" will reflect the concrete color space was selected as optimal.
+2D rendering contexts are to expose a new getContextAttributes() method, that works much like the method of the same name on WebGLRenderingContext. The method returns the "actual context attributes" which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for 2D contexts, as well as the result of any fallbacks that may have happened as a result of options not being supported by the UA.
 
-##### Feature detection
+Web apps may infer that a user agent that does not implement getContextAttributes() does not support the colorSpace, pixelFormat and linearPixelMath attributes.
 
-The settings attribute can be use to determine whether the requested color space was honored by getContext(). This gives apps a way to query the user agent to determine whether a given color space is supported. The absence of a settings attribute would indicate that colorSpace is not supported.
-
-Note: An alternative approach that was considered was to augment the probablySupportsContext() API by making it check the second argument.  That approach is difficult to consolidate with how dictionary argument are meant to work, where unsupported entries are just ignored.
+Note: An alternative approach that was considered was to augment the probablySupportsContext() API by making it check the second argument.  That approach is difficult to consolidate with how dictionary arguments are meant to work, where unsupported entries are just ignored.
 
 #### ImageBitmap
 
-ImageBitmap objects are augmented to have an internal color space attribute of type CanvasColorSpace. The colorSpaceConversion creation attribute also accepts enum values that correspond to CanvasColorSpace values. Specifying a CanvasColorSpace value results in a conversion of the image to the specified color space.
+ImageBitmap objects are augmented to have an internal color space attribute of type CanvasColorSpace and an internal pixelFormat attribute of type CanvasPixelFormat. The colorSpaceConversion creation attribute also accepts enum values that correspond to CanvasColorSpace values. Specifying a CanvasColorSpace value results in a conversion of the image to the specified color space.
 
 #### ImageData
 
 IDL
 <pre>
-typedef (Uint8ClampedArray or Float32Array) ImageDataArray;
+typedef (Uint8ClampedArray or Uint16ClampedArray or Float32Array) ImageDataArray;
 
 [Constructor(unsigned long sw, unsigned long sh, optional CanvasColorSpace colorSpace = "legacy-srgb"),
  Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional CanvasColorSpace colorSpace),
@@ -137,26 +151,14 @@ interface ImageData {
 };
 </pre>
 
-* <code>data</code> is a Uint8ClampedArray if colorSpace is "srgb" or "legacy-srgb"
-* <code>data</code> is a Float32Array if colorSpace is "linear-rec-2020"
-* Non-standard color spaces that have more than 8bpc and use an integer format may use Uint16ClampedArray for <code>data</code>. Regardless of the number of bits used by the color space, the representation of color components as Uint16 values must use the range [0,65535].
-* getImageData() produces an ImageData object in the same color space as the source canvas
+* getImageData() produces an ImageData object in the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the specified pixelFormat (smallest possible numeric size that guarantees no loss of precision)
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 
 ### Limitations 
-* No support for arbitrary user-defined color spaces and bit depths.  This capability could be added in the future.  The current proposal attempts to solve the problem with a minimal API surface, and keeps the implementation scope reasonable.  The extensible design will allow us to extend the capabilities in the future if necessary.  The rec-2020 space was chosen for its very wide gamut and its non-virtual primary colors, which strikes a balance that is deemed practical.
-* toDataURL is lossy, depending on the file format, when used on a canvas that is in the linear-rec-2020 space. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
-* ImageData uses float32, which is inefficient due to memory consumption and necessary conversion operations. Float32 was chosen because it is convenient for manipulation (e.g. image processing) due to its native support in JavaScript (and current CPUs). A possible extension would be to add and option for linear-rec-2020 content to be encoded as float16s packed into Uint16 values.
-
-### Security and privacy issues
-Some current implementations of CanvasRenderingContext2D color correct image resources for the display as they are drawn to the canvas. In other words, the canvas is in output referred color space. This is a known fingerprinting vulnerability since it exposes the user's display's color profile to scripts via getImageData.  The current proposal does not solve the fingerprinting issue because it will still exist in legacy-srgb.  To solve the problem, implementations must color-correct CSS colors, then by extension, legacy-srgb mode will be in the true sRGB color space by virtue of the color matching rules outlined above.  When that becomes the case, images drawn to canvases will be color corrected to sRGB, which solves the problem.  There is resistance to adopting this model because going through an sRGB intermediate is lossy compared to directly color correcting images for the display in a single pass (may cause banding and gamut clipping).  This feature proposal mitigates the lossiness argument thanks to the linear-rec-2020 option.
-
-Implementors should be mindful of fingerprinting in their designs of non-standard color spaces. E.g. they should avoid providing color spaces that expose the display's specific profile, though doing so is tempting for an "optimal" match.
+* toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Implementation notes 
-* Because float16 arithmetic is supported by most GPUs, but not by CPUs, implementations should probably opt to not support linear-rec-2020 on hardware that does not provide any native support.
-* When possible, the srgb color space should use GPU API extensions for sRGB support. This will streamline the conversion overhead for performing filtering and compositing in linear space.
-* Implementations of non-standard (i.e. vendor-specific) color spaces should be designed for optimal performance. For example wide gamut spaces could use the sRGB tranfer curves to take advantage of hardware support.
+* When possible, the linerPixelMath option should use GPU API extensions for sRGB transfer curve support. This will streamline the gamma compression/decrompression overhead for performing filtering and compositing in linear space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
@@ -164,27 +166,19 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 ## Unresolved Issues
 
-* Should more standard color spaces be added? We must strike a balance between providing useful interoperable options and avoiding an over-spec'ing. Risk associated with over-spec'ing include: high implementation burden, compatibility risks, shipping is forever. Suggestions for additional color spaces include: 
-    * DCI-P3 or Apple's P3 (8bpc possibly 10bpc?). One of the appeals of P3 is to match the media query API (c.f. https://drafts.csswg.org/mediaqueries-4/#color-gamut). It also offers a reasonable halfway compromise between sRGB and rec-2020, and it is a good match for some current display profiles.
-    * 8bpc rec-2020, with gamma compression. This color space uses the same gamma curve as sRGB, so it is convenient to support on current GPUs.  Would offer wide gamut with low memory cost.  There are concerns that this space may be of limited usefulness due to potential banding issues, since the gamut is so wide.
-    * A space based on AdobeRGB with 8bpc (can't "Adobe" in the name). This space would be close to the display profile spaces of many current displays. Could use the same primaries as AdobeRGB with the gamma curve of sRGB for ease of implementation.
-
-* Should non-standard color spaces use vendor prefixes to avoid compatibility issues or name clashes?
-
 * Should black level compensation be implied in "linear spaces", such that (0,0,0) always represents absolute black in linear color values?
 
-* Should linear-rec-2020 or non-standard color spaces be allowed to operate outside of the [0,1] range in 2D canvases? The current definitions of compositing and blending modes were not designed with this in mind.
+* Should float16 pixelFormat get clamped to the [0,1] range at any stage of the pipeline? The current definitions of compositing and blending modes were not designed with this in mind.
 
-* Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colospace: ["p3", "linear-rec-2020"]});</code> would mean use p3 if possible; if not fallback to linear-rec-2020.  Since color spaces are already feature detectable, this would be a convenience feature.
+* Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colorSpace: ["p3", "rec2020"]});</code> would mean use p3 if possible; if not supported, try rec2020; and if rec2020 is not supported, fallback to srgb, which is the default.  Since color spaces are already feature detectable, this would be a convenience feature.  Same question applies to pixelFormats.
 
-* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for compositing in linear space. Referencing a remote ICC profile may be problematic because getContext() is synchronous. Could solve that by taking the profile arg as an ArrayBuffer (created from an ICC file Blob) rather than a URI for specifying the ICC profile file.
-    * Tenative resolution: Not for now. This would be very hard to implement efficiently, and there are potential interop issues with ICC support.
+* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves. 
 
 ## Proposal History
 
 This propsal was originally incubated in the WHATWG github issue tracker and incorporates feedback that was provided in the following thread: https://github.com/whatwg/html/issues/299
 
-This proposal was further discussed in the Khronos WebGL working group, with the participation of engineers from Apple, Google, Microsoft, Mozilla,  Nvidia, and others.
+This proposal was further discussed in the Khronos WebGL working group, with the participation of engineers from Apple, Google, Microsoft, Mozilla, Nvidia, and others.
 
 The current venue for discussing this proposal is a [W3C WICG Discourse thread](https://discourse.wicg.io/t/canvas-color-spaces-wide-gamut-and-high-bit-depth-rendering/1505)
 
