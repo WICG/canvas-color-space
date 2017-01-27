@@ -2,7 +2,7 @@
 
 ## Use Case Description
 * Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters a lot for artistic uses (e.g. photo and paint apps) and for e-commerce (product presentation).
-* Canvases should be able to take advantage of the full color gamut of the display device.
+* Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
 * Creative apps that do image manipulation generally prefer compositing, filtering and interpolation calculations to be performed in a linear color space.
 
 ### Current Limitations
