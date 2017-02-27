@@ -140,18 +140,23 @@ IDL
 <pre>
 typedef (Uint8ClampedArray or Uint16ClampedArray or Float32Array) ImageDataArray;
 
-[Constructor(unsigned long sw, unsigned long sh, optional CanvasColorSpace colorSpace = "legacy-srgb"),
- Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional CanvasColorSpace colorSpace),
+dictionary ImageDataColorSettings {
+  CanvasColorSpace colorSpace = "srgb";
+  CanvasPixelFormat pixelFormat = "8-8-8-8";
+};
+
+[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSetting imageDataColorSettings),
+ Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSetting imageDataColorSettings),
  Exposed=(Window,Worker)]
 interface ImageData {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
   readonly attribute ImageDataArray data;
-  readonly attribute CanvasColorSpace colorSpace;
+  readonly attribute ImageDataColorSetting imageDataColorSettings;
 };
 </pre>
 
-* getImageData() produces an ImageData object in the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the specified pixelFormat (smallest possible numeric size that guarantees no loss of precision)
+* getImageData() produces an ImageData object with the same color settings (colorSpace and pixelFormat) as the source canvas, using an ImageDataArray of a type that is appropriate for the specified pixelFormat (smallest possible numeric size that guarantees no loss of precision).
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 
 ### Limitations 
