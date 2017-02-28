@@ -138,26 +138,35 @@ ImageBitmap objects are augmented to have an internal color space attribute of t
 
 IDL
 <pre>
+
+enum ImageDataStorageFormat {
+  "uint8", // default
+  "uint16",
+  "float32",
+};
+
 typedef (Uint8ClampedArray or Uint16ClampedArray or Float32Array) ImageDataArray;
 
 dictionary ImageDataColorSettings {
   CanvasColorSpace colorSpace = "srgb";
-  CanvasPixelFormat pixelFormat = "8-8-8-8";
+  ImageDataStorageFormat storageFormat = "uint8";
 };
 
-[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSetting imageDataColorSettings),
- Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSetting imageDataColorSettings),
+[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
+ Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
  Exposed=(Window,Worker)]
 interface ImageData {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
   readonly attribute ImageDataArray data;
-  readonly attribute ImageDataColorSetting imageDataColorSettings;
+  readonly attribute ImageDataColorSettings imageDataColorAttributes;
 };
 </pre>
 
-* getImageData() produces an ImageData object with the same color settings (colorSpace and pixelFormat) as the source canvas, using an ImageDataArray of a type that is appropriate for the specified pixelFormat (smallest possible numeric size that guarantees no loss of precision).
+* When using the constructor with ImageDataArray parameter, the array type must respect ImageDataColorSettings.ImageDataStorageFormat. Otherwise, the return object will be undefined.
+* getImageData() produces an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
 * putImageData() performs a color space conversion to the color space of the destination canvas.
+* The proper ImageDataStorageFormat for "10-10-10-2" and "12-12-12-12" canvas pixel formats is "uint16". getImageData() and putImageData() use bit shifting for numerical scaling.
 
 ### Limitations 
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
