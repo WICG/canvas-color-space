@@ -138,20 +138,33 @@ ImageBitmap objects are augmented to have an internal color space attribute of t
 
 IDL
 <pre>
+
+enum ImageDataStorageType {
+  "uint8", // default
+  "uint16",
+  "float32",
+};
+
 typedef (Uint8ClampedArray or Uint16ClampedArray or Float32Array) ImageDataArray;
 
-[Constructor(unsigned long sw, unsigned long sh, optional CanvasColorSpace colorSpace = "legacy-srgb"),
- Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional CanvasColorSpace colorSpace),
+dictionary ImageDataColorSettings {
+  CanvasColorSpace colorSpace = "srgb";
+  ImageDataStorageType storageType = "uint8";
+};
+
+[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
+ Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
  Exposed=(Window,Worker)]
 interface ImageData {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
   readonly attribute ImageDataArray data;
-  readonly attribute CanvasColorSpace colorSpace;
+  readonly attribute ImageDataColorSettings colorAttributes;
 };
 </pre>
 
-* getImageData() produces an ImageData object in the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the specified pixelFormat (smallest possible numeric size that guarantees no loss of precision)
+* When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
+* getImageData() produces an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 
 ### Limitations 
