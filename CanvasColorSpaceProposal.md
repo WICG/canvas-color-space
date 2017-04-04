@@ -159,7 +159,8 @@ interface ImageData {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
   readonly attribute ImageDataArray data;
-  readonly attribute ImageDataColorSettings colorAttributes;
+  
+  ImageDataColorSettings getColorSettings();
 };
 </pre>
 
