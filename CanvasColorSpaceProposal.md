@@ -100,6 +100,7 @@ The pixelFormat attributes specifies the numeric types to be used for storing pi
 * When an unsupported format is requested, the format shall fall back to "8-8-8-8".
 * With formats that use integer numeric types for the color channels, the canvas pixel buffer shall store gamma-corrected color values, using the transfer curves prescribed by the specification of the current color space.
 * With formats that use floating-point numeric types for the color channels, the canvas pixel buffer shall store non-gamma-corrected (a.k.a linear) color values.
+* Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a pixel value of (2,2,2) should be twice as bright as (1,1,1).
 
 #### Selecting the best color space match for the user agent's display device
 <pre>
@@ -180,8 +181,6 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 ## Unresolved Issues
 
 * Should black level compensation be implied in "linear spaces", such that (0,0,0) always represents absolute black in linear color values?
-
-* Should float16 pixelFormat get clamped to the [0,1] range at any stage of the pipeline? The current definitions of compositing and blending modes were not designed with this in mind.
 
 * Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colorSpace: ["p3", "rec2020"]});</code> would mean use p3 if possible; if not supported, try rec2020; and if rec2020 is not supported, fallback to srgb, which is the default.  Since color spaces are already feature detectable, this would be a convenience feature.  Same question applies to pixelFormats.
 
