@@ -186,6 +186,8 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves. 
 
+* Should float16 pixelFormat allow alpha values outside [0,1] range at any stage of the pipeline? What would they mean?
+
 ## Proposal History
 
 This propsal was originally incubated in the WHATWG github issue tracker and incorporates feedback that was provided in the following thread: https://github.com/whatwg/html/issues/299
