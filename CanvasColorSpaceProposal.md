@@ -165,7 +165,7 @@ interface ImageData {
 </pre>
 
 * When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
-* getImageData() produces an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
+* createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 
 ### Limitations 
