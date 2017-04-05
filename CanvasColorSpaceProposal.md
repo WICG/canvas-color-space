@@ -166,7 +166,10 @@ interface ImageData {
 
 * When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
 * createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
+* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear gamma color space.
 * putImageData() performs a color space conversion to the color space of the destination canvas.
+* Data returned by getImageData() or passed to putImageData() are assumed to be in linear gamma color space.
+* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear gamma color space.
 
 ### Limitations 
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
