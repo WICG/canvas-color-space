@@ -146,7 +146,7 @@ enum ImageDataStorageType {
   "float32",
 };
 
-typedef (Uint8ClampedArray or Uint16ClampedArray or Float32Array) ImageDataArray;
+typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
 
 dictionary ImageDataColorSettings {
   CanvasColorSpace colorSpace = "srgb";
