@@ -112,7 +112,7 @@ var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020"
 Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
 
 #### The linearPixelMath context creation attribute
-The linerPixelMath context creation attribute indicates whether encoded (non-linear) pixel values should be transiently converted to linear space for performing arithmetic on color values.
+The linearPixelMath context creation attribute indicates whether encoded (non-linear) pixel values should be transiently converted to linear space for performing arithmetic on color values.
 * Defaults to false.
 * Has no effect if the pixelFormat uses floating-point numeric types.
 * Affects the behavior of: globalCompositeOperation, image resampling performed by drawImage, gradient interpolation.
@@ -176,7 +176,7 @@ interface ImageData {
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Implementation notes 
-* When possible, the linerPixelMath option should use GPU API extensions for sRGB transfer curve support. This will streamline the encoding/decoding overhead of the transitions between non-linear and linear for performing filtering and compositing in linear space.
+* When possible, the linearPixelMath option should use GPU API extensions for sRGB transfer curve support. This will streamline the encoding/decoding overhead of the transitions between non-linear and linear for performing filtering and compositing in linear space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
