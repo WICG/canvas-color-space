@@ -75,7 +75,7 @@ canvas.getContext('2d', { colorSpace: "p3", pixelFormat: "10-10-10-2", linearPix
 
 * Guarantees that color values used as fillStyle or strokeStyle exactly match the appearance of the same color value when it is used in CSS.
 * On implementations that do not color-manage CSS colors, the canvas "srgb" color space must not be color-managed either, in order to preserve color-matching between CSS and canvas-rendered content. This situation shall be referred to as the "legacy behavior".
-* All content drawn into the canvas must be color corrected to sRGB. Exception: User agents that implement the legacy behavior must apply color correction steps that match the color correction that is applied to image image resource that are displayed via CSS.
+* All content drawn into the canvas must be color corrected to sRGB. Exception: User agents that implement the legacy behavior must apply color correction steps that match the color correction that is applied to image resources that are displayed via CSS.
 * Displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
 * toDataURL/toBlob produce resources tagged as being in the sRGB color space, if the encoding format supports colorspace tagging or embedded color profiles. Exception: User agents that implement the legacy behavior must not encode any color space metadata.
 * Images with no color profile, when drawn to the canvas, are assumed to already be in the canvas's color space, and require no color transformation.
@@ -98,8 +98,8 @@ canvas.getContext('2d', { colorSpace: "p3", pixelFormat: "10-10-10-2", linearPix
 The pixelFormat attributes specifies the numeric types to be used for storing pixel values.
 * Support for "8-8-8-8" is mandatory. All other formats ar optional.
 * When an unsupported format is requested, the format shall fall back to "8-8-8-8".
-* With formats that use integer numeric types for the color channels, the canvas pixel buffer shall store gamma-corrected color values, using the transfer curves prescribed by the specification of the current color space.
-* With formats that use floating-point numeric types for the color channels, the canvas pixel buffer shall store non-gamma-corrected (a.k.a linear) color values.
+* With formats that use integer numeric types for the color channels, the canvas pixel buffer shall store non-linear color values, encoded using the transfer curves prescribed by the specification of the current color space.
+* With formats that use floating-point numeric types for the color channels, the canvas pixel buffer shall store linear (i.e unencoded) color values.
 * Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a pixel value of (2,2,2) should be twice as bright as (1,1,1).
 
 #### Selecting the best color space match for the user agent's display device
@@ -112,7 +112,7 @@ var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020"
 Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
 
 #### The linearPixelMath context creation attribute
-The linerPixelMath context creation attribute indicates whether gamma-corrected pixel values should be transiently converted to linear space for performing arithmetic on color values.
+The linearPixelMath context creation attribute indicates whether encoded (non-linear) pixel values should be transiently converted to linear space for performing arithmetic on color values.
 * Defaults to false.
 * Has no effect if the pixelFormat uses floating-point numeric types.
 * Affects the behavior of: globalCompositeOperation, image resampling performed by drawImage, gradient interpolation.
@@ -167,16 +167,16 @@ interface ImageData {
 
 * When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
 * createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
-* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear gamma color space.
+* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear color space.
 * putImageData() performs a color space conversion to the color space of the destination canvas.
-* Data returned by getImageData() or passed to putImageData() are assumed to be in linear gamma color space.
-* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear gamma color space.
+* Data returned by getImageData() or passed to putImageData() are assumed to be in linear color space.
+* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear color space.
 
 ### Limitations 
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Implementation notes 
-* When possible, the linerPixelMath option should use GPU API extensions for sRGB transfer curve support. This will streamline the gamma compression/decrompression overhead for performing filtering and compositing in linear space.
+* When possible, the linearPixelMath option should use GPU API extensions for sRGB transfer curve support. This will streamline the encoding/decoding overhead of the transitions between non-linear and linear for performing filtering and compositing in linear space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
