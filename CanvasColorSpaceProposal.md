@@ -1,7 +1,7 @@
 # Color managing canvas contents
 
 ## Use Case Description
-* Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters a lot for artistic uses (e.g. photo and paint apps) and for e-commerce (product presentation).
+* Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters a lot for artistic uses (e.g. photo and paint apps), for e-commerce (product presentation) and when canvas element are presented alongside video content.
 * Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
 * Creative apps that do image manipulation generally prefer compositing, filtering and interpolation calculations to be performed in a linear color space.
 
@@ -44,6 +44,8 @@ IDL:
 enum CanvasColorSpace {
   "srgb", // default
   "rec2020",
+  "rec2100pq",
+  "rec2100pqn",
   "p3",
 };
 
@@ -87,6 +89,21 @@ canvas.getContext('2d', { colorSpace: "p3", pixelFormat: "10-10-10-2", linearPix
 * toDataURL/toBlob convert image data to the rec-2020 color space.
 * Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to rec2020 for the purpose of the draw.
 
+#### The "rec2100pq" color space
+* Support is optional.
+* User agents that select the rec2100pq color gamut in CSS media queries must support this color space.
+* The color space corresponds to ITU-R Recommendation BT.2100 using the Reference PQ EOTF and full-range quantization.
+* toDataURL/toBlob convert image data to the rec2100pq color space.
+* Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to rec2100pq for the purpose of the draw according to the `luminanceGain` parameter (see below).
+
+#### The "rec2100pqn" color space
+* Support is optional.
+* User agents that select the rec2100pqn color gamut in CSS media queries must support this color space.
+* The color space corresponds to ITU-R Recommendation BT.2100 using the Reference PQ EOTF and narrow-range quantization.
+* toDataURL/toBlob convert image data to the rec2100pqn color space.
+* Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space, and are converted to rec2100pqn for the purpose of the draw according to the `luminanceGain` parameter (see below).
+
+
 #### The "p3" color space
 * Support is optional.
 * User agents that select either of the the p3 or the rec2020 color gamuts in CSS media queries must support this color space.
@@ -105,11 +122,15 @@ The pixelFormat attributes specifies the numeric types to be used for storing pi
 #### Selecting the best color space match for the user agent's display device
 <pre>
 var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020" : 
-    (window.matchMedia("(color-gamut: p3)").matches ? "p3" : "srgb");
+    ( window.matchMedia("(color-gamut: p3)").matches ? "p3" : 
+      ( window.matchMedia("(color-gamut: rec2100pq)").matches ? "rec2100pq" :
+        ( window.matchMedia("(color-gamut: rec2100pqn)").matches ? "rec2100pqn" : "srgb" )
+      )
+    );
 </pre>
 
 #### Selecting the best pixelFormat for the user agent's display device
-Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
+Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020 and rec2100pq and rec2100pqn, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
 
 #### The linearPixelMath context creation attribute
 The linearPixelMath context creation attribute indicates whether encoded (non-linear) pixel values should be transiently converted to linear space for performing arithmetic on color values.
@@ -151,6 +172,7 @@ typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
 dictionary ImageDataColorSettings {
   CanvasColorSpace colorSpace = "srgb";
   ImageDataStorageType storageType = "uint8";
+  float luminanceGain = "1.0";
 };
 
 [Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
@@ -171,6 +193,7 @@ interface ImageData {
 * putImageData() performs a color space conversion to the color space of the destination canvas.
 * Data returned by getImageData() or passed to putImageData() are assumed to be in linear color space.
 * If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear color space.
+* the `luminanceGain` property is used to map sRGB colors to colors with greater dynamic range, including those in the `rec2100pq` and `rec2100pqn` colorspaces, as specified at (https://www.w3.org/TR/ttml2/#style-attribute-luminanceGain).
 
 ### Limitations 
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
