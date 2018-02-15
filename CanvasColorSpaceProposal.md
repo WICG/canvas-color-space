@@ -3,7 +3,7 @@
 ## Use Case Description
 * Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters a lot for artistic uses (e.g. photo and paint apps) and for e-commerce (product presentation).
 * Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
-* Some applications prefer prefer that compositing, filtering and interpolation calculations be performed in a physically based linear color space.
+* Some applications prefer that compositing, filtering and interpolation calculations be performed in a physically based linear color space.
 
 ### Current Limitations
 * The color space of canvases is undefined in the current specification.
@@ -43,7 +43,6 @@ IDL:
 <pre>
 enum CanvasColorSpace {
   "srgb", // default
-  "extended-srgb",
   "linear-srgb",
 };
 
@@ -68,25 +67,20 @@ canvas.getContext('2d', { colorSpace: "linear-srgb", pixelFormat: "float16"});
 </pre>
 
 #### Common properties of all color spaces
-* All input colors (e.g, fillStyle or strokeStyle) are defined to be sRGB colors, regardless of the canvas color space.
+* All input colors (e.g, fillStyle or strokeStyle, and gradient stops) follow the same interpretation as CSS color literals, regardless of canvas color space.
 * Images with no color profile, when drawn to the canvas, are assumed to already be in sRGB color space.
 * Unless otherwise explicitly specified by the user, toDataURL/toBlob will produce resources in sRGB color space. If the encoding format supports colorspace tagging or embedded color profiles, the resource will be tagged as being in sRGB color space.
-* Colors written directly by WebGL shaders are defined to be in the output canvas color space.
+* Values written to WebGL drawing buffers (e.g, values written to gl_FragColor or the clear color) are defined to be in the output canvas color space.
 
 #### The "srgb" color space
 * This color space matches the existing canvas behavior.
 * Guarantees that color values used as fillStyle or strokeStyle exactly match the appearance of the same color value when it is used in CSS.
-* Displayed canvases must be converted to the display's color profile if available. This happens downstream at the compositing stage, and has no script-visible side-effects.
-
-#### The "extended-srgb" color space
-* Support is optional.
-* Requires that the pixelFormat attribute be "float16".
-* This color space exists to enable existing applications to add wide color gamut and high dynamic range support with no little to no modification
-* Color space definition
-   * This color space uses the same primaries as the sRGB color space.
-   * This color space supports arbitrary pixel values, in particular, values outside of the range [0, 1].
-   * Pixel values greater than 1 are defined by extending nonlinear piece of the sRGB transfer function.
+* Any conversion to an output color space (e.g, for display on a color calibrated monitor) happens downstream at the compositing stage, and has no script-visible side-effects.
+* If the pixelFormat attribute is set to "float16" then
+   * The interpretation of pixel values in the range of [0, 1] will be unaffected.
+   * Pixel values greater than 1 are defined by the extending nonlinear piece of the sRGB transfer function.
    * Pixel values less than 0 are defined by point-symmetrically extending the sRGB transfer function. Specifically, T(-x)=sign(x) * T(abs(x))
+   * This color space exists to enable existing applications to add wide color gamut and high dynamic range support with little to no modification
 
 #### The "linear-srgb" color space
 * Support is optional.
@@ -96,13 +90,13 @@ canvas.getContext('2d', { colorSpace: "linear-srgb", pixelFormat: "float16"});
    * This color space uses the same primaries as the sRGB color space.
    * This color space has a linear transfer function that supports arbitrary pixel values, in particular, values outside of the range [0, 1].
 * Note that gradients will be physically uniform, and thus will not match gradients in an "srgb" canvas
-* Note that pixel values written by WebGL shaders are now in a space with a linear transfer function, and will not necessarily match those of an "srgb" canvas.
+* Note that pixel values written to WebGL draw buffers are now in a space with a linear transfer function, and will not necessarily match those of an "srgb" canvas.
 
 #### The pixelFormat context creation attribute
 The pixelFormat attributes specifies the numeric types to be used for storing pixel values.
 * Support for "8-8-8-8" is mandatory. All other formats ar optional.
 * When an unsupported format is requested, the format shall fall back to "8-8-8-8".
-* Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels.
+* Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent any color gamut and brightness level (up to floating point precision and range).
 * How values outside of [0,1] are displayed depends on the capabilites of the device and output display.
    * Standard dynamic range devices should clamp these values to [0, 1].
    * For high dynamic range devices, pixel value of (2,2,2) in the "linear-srgb" color space should be should be twice as bright as (1,1,1).
@@ -183,8 +177,6 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 ## Unresolved Issues
 
 * Should black level compensation be implied in "linear spaces", such that (0,0,0) always represents absolute black in linear color values?
-
-* RESOLVED OBSOLETE(?): Should it be possible to specify the color space parameter as an array representing a fallback list? Example: <code>canvas.getContext('2d', {colorSpace: ["p3", "rec2020"]});</code> would mean use p3 if possible; if not supported, try rec2020; and if rec2020 is not supported, fallback to srgb, which is the default.  Since color spaces are already feature detectable, this would be a convenience feature.  Same question applies to pixelFormats.
 
 * Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves. 
 
