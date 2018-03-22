@@ -75,14 +75,13 @@ canvas.getContext('2d', { colorSpace: "linear-srgb", pixelFormat: "float16"});
 #### The "srgb" color space
 * This color space matches the existing canvas behavior.
 * Guarantees that color values used as fillStyle or strokeStyle exactly match the appearance of the same color value when it is used in CSS.
-* Any conversion to an output color space (e.g, for display on a color calibrated monitor) happens downstream at the compositing stage, and has no script-visible side-effects.
-* If the pixelFormat attribute is set to "float16" then
-   * The interpretation of pixel values in the range of [0, 1] will be unaffected.
-   * Pixel values greater than 1 are defined by the extending nonlinear piece of the sRGB transfer function.
-   * Pixel values less than 0 are defined by point-symmetrically extending the sRGB transfer function. Specifically, T(-x)=sign(x) * T(abs(x))
-   * This color space exists to enable existing applications to add wide color gamut and high dynamic range support with little to no modification
+* On implementations that do not color-manage CSS colors, the canvas "srgb" color space must not be color-managed either, in order to preserve color-matching between CSS and canvas-rendered content. This situation shall be referred to as the "legacy behavior".
+* All content drawn into the canvas must be color corrected to sRGB. Exception: User agents that implement the legacy behavior must apply color correction steps that match the color correction that is applied to image resources that are displayed via CSS.
+* Displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
+* toDataURL/toBlob produce resources tagged as being in the sRGB color space, if the encoding format supports colorspace tagging or embedded color profiles. Exception: User agents that implement the legacy behavior must not encode any color space metadata.
+* Images with no color profile, when drawn to the canvas, are assumed to already be in the canvas's color space, and require no color transformation.
 
-#### The "linear-srgb" color space
+#### The "rec2020" color space
 * Support is optional.
 * Requires that the pixelFormat attribute be "float16".
 * This color space exists to enable wide color gamut and high dynamic range applications that use physically correct linear color operations (e.g, blending and interpolation)
@@ -96,10 +95,9 @@ canvas.getContext('2d', { colorSpace: "linear-srgb", pixelFormat: "float16"});
 The pixelFormat attributes specifies the numeric types to be used for storing pixel values.
 * Support for "8-8-8-8" is mandatory. All other formats ar optional.
 * When an unsupported format is requested, the format shall fall back to "8-8-8-8".
-* Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent any color gamut and brightness level (up to floating point precision and range).
-* How values outside of [0,1] are displayed depends on the capabilites of the device and output display.
-   * Standard dynamic range devices should clamp these values to [0, 1].
-   * For high dynamic range devices, pixel value of (2,2,2) in the "linear-srgb" color space should be should be twice as bright as (1,1,1).
+* With formats that use integer numeric types for the color channels, the canvas pixel buffer shall store non-linear color values, encoded using the transfer curves prescribed by the specification of the current color space.
+* With formats that use floating-point numeric types for the color channels, the canvas pixel buffer shall store linear (i.e unencoded) color values.
+* Float values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a pixel value of (2,2,2) should be twice as bright as (1,1,1).
 
 #### Selecting the best color space match for the user agent's display device
 <pre>
@@ -162,10 +160,10 @@ interface ImageData {
 
 * When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
 * createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
-* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear gamma color space.
+* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear color space.
 * putImageData() performs a color space conversion to the color space of the destination canvas.
-* Data returned by getImageData() or passed to putImageData() are assumed to be in linear gamma color space.
-* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear gamma color space.
+* Data returned by getImageData() or passed to putImageData() are assumed to be in linear color space.
+* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear color space.
 
 ### Limitations 
 * toDataURL and toBlob are lossy, depending on the file format, when used on a canvas that has a pixelFormet other than 8-8-8-8. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
