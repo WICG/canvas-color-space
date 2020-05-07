@@ -3,7 +3,6 @@
 ## Use Case Description
 * Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters a lot for artistic uses (e.g. photo and paint apps) and for e-commerce (product presentation).
 * Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
-* Some applications prefer that compositing, filtering and interpolation calculations be performed in a physically based linear color space.
 
 ### Current Limitations
 * The color space of canvases is undefined in the current specification, though de facto sRGB.
@@ -34,8 +33,7 @@ Some implementations convert images drawn to canvases to the sRGB color space. T
 * Clearly define the color space of canvases.  Most current browser implementations are either color-managed or are currently actively working on becoming color-managed.  Therefore, it will be possible to specify that the default color space of canvases as 'srgb' instead of leaving it undefined in the spec (as is currently the case due to lack of interoperability).
 * Add a canvas context creation attribute to specify a color space.
 * Add a canvas context creation attribute to specify an encoding format for storing pixel values.
-* Add a canvas context creation attribute to specify a linearity for perceptual vs physical blending/interpolation.
-* Color space, encoding format, and linearity parameters are also extended to image storage interfaces that interact with canvases, such as CanvasPattern, ImageData and ImageBitmap.
+* Color space and encoding format parameters are also extended to image storage interfaces that interact with canvases, such as CanvasPattern, ImageData and ImageBitmap.
 
 ### Processing Model
 
@@ -54,11 +52,6 @@ enum CanvasColorEncodingEnum {
   "float16",
 };
 
-enum CanvasColorLinearityEnum {
-  "luminance", // default, 0.5 is half the (perceptual) brightness/luminance of 1.0.
-  "radiance",  // 0.5 is half the (physical) radiance of 1.0. (~75% of the brightness)
-};
-
 // Feature detection:
 
 interface CanvasColorSpace {
@@ -72,29 +65,21 @@ interface CanvasColorEncoding {
   const CanvasColorEncodingEnum float16 = "float16";
 };
 
-interface CanvasColorLinearity {
-  const CanvasColorLinearityEnum luminance = "luminance";
-  const CanvasColorLinearityEnum radiance = "radiance";
-};
-
 // Feature activation:
 
 partial dictionary CanvasRenderingContext2DSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasColorEncodingEnum colorEncoding = "unorm8";
-  CanvasColorLinearityEnum colorLinearity = "luminance";
 };
 
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasColorEncodingEnum colorEncoding = "unorm8";
-  CanvasColorLinearityEnum colorLinearity = "luminance";
 };
 
 dictionary ImageDataColorSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasColorEncodingEnum colorEncoding = "unorm8";
-  CanvasColorLinearityEnum colorLinearity = "luminance";
 };
 
 partial interface CanvasRenderingContext2D {
@@ -105,17 +90,16 @@ partial interface CanvasRenderingContext2D {
 Example:
 <pre>
 canvas.getContext('2d', { colorSpace: "rec2020",
-                          colorEncoding: "float16",
-                          colorLinearity: "radiance"} );
+                          colorEncoding: "float16"} );
 </pre>
 
 #### The colorSpace canvas creation parameter
 
 * Color spaces match their respective counterparts as defined in the [CSS colorspaces](https://www.w3.org/TR/css-color-4/#predefined).
 * All input colors (e.g, fillStyle or strokeStyle, and gradient stops) follow the same interpretation as CSS color literals, regardless of canvas color space.
-* Values written to WebGL backbuffers (e.g, values written to gl_FragColor or the clear color) are in the canvas's color space and linearity.
+* Values written to WebGL backbuffers (e.g, values written to gl_FragColor or the clear color) are in the canvas's color space.
 * Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space.
-* Unless otherwise explicitly specified by the user, toDataURL/toBlob will produce resources in sRGB color space, with unorm8 encoding (matching existing behavior), and "luminance" linearity. If the destination image format supports colorspace tagging or embedded color profiles, the resource will be tagged as being in sRGB color space.
+* Unless otherwise explicitly specified by the user, toDataURL/toBlob will produce resources in sRGB color space, with unorm8 encoding (matching existing behavior). If the destination image format supports colorspace tagging or embedded color profiles, the resource will be tagged as being in sRGB color space.
 
 ##### The "srgb" color space
 * This color space matches the existing canvas behavior.
@@ -138,22 +122,9 @@ The colorEncoding attributes specifies the encoding to be used for storing pixel
 * Support for "unorm8" is mandatory. All other encodings are optional.
 * When an unsupported encoding is requested, the encoding shall fall back to "unorm8".
 * The alpha channel is always interpreted as if clamped to [0,1].
-* Float RGB channel values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a luminance-linear pixel value of (2,2,2) should be twice as bright as (1,1,1).
+* Float RGB channel values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a (luminance-linear) pixel value of (2,2,2) should be twice as bright as (1,1,1).
 * Operations on encoded values always operate on decoded values, not the encoded bits.
     * I.e. in "unorm8-srgb" encoding, 0xff (1.0) minus 0xbc (0.5) equals 0xbc (0.5).
-
-
-#### The colorLinearity context creation attribute
-
-##### "luminance" linearity
-Values are linear along their transfer functions.
-0.5 is half as (perceptually) luminant/bright as 1.0, but about 20% as (physically) radiant.
-For blending and interpolation, 0.5 is half way between 0.0 and 1.0.
-
-##### "radiance" linearity
-Values are linear with no transfer function.
-0.5 is half as (physically) radiant as 1.0, but about 75% as (perceptually) luminant/bright.
-For blending and interpolation, 0.5 is half way between 0.0 and 1.0.
 
 
 #### Selecting the best color space match for the user agent's display device
@@ -212,10 +183,8 @@ interface ImageData {
 
 * When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
 * createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
-* If the canvas color space is not "srgb" or the pixel format is not "8-8-8-8", the data returned by getImageData() is in linear color space.
 * putImageData() performs a color space conversion to the color space of the destination canvas.
-* Data returned by getImageData() or passed to putImageData() are assumed to be in linear color space.
-* If the image data color space is not "srgb" or the storage format is not "uint8", the data passed to putImageData() is assumed to be in linear color space.
+* Data returned by getImageData() or passed to putImageData() are assumed to be in "srgb" color space, with "unorm8" encoding.
 
 ### Limitations
 * toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has an encoding other than "unorm8". Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
@@ -225,8 +194,6 @@ Lack of color management and color interoperability is a longstanding complaint 
 Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 ## Unresolved Issues
-
-* Should black level compensation be implied for "radiance" linearity, such that (0,0,0) always represents absolute black in the color space?
 
 * Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves.
 
