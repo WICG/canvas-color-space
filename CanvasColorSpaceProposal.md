@@ -7,10 +7,10 @@
 ### Current Limitations
 * The color space of canvases is undefined in the current specification, though de facto sRGB.
 * The bit-depth of canvases is currently fixed to 8 bits per component, which is below the capabilities of some monitors. Monitors with higher contrast ratios require more bits per component to avoid banding.
-* Color encoding and blending is de facto luminance-linear unorm8, which allocates too little precision on low values (and too much precision on high values), leading to poor handling of dark scenes and content.
+* Color encoding and blending is de facto perceptually-linear unorm8, which allocates too little precision on low values (and too much precision on high values), leading to poor handling of dark scenes and content.
 
 ### Current Usage and Workarounds
-The lack of color space interoperability is hard to work around. With some browser implementations that color correct images drawn to canvases by applying the display profile, apps that want to use canvases for color corrected image processing are stuck doing convoluted workarounds, such as:
+The lack of color space interoperability is hard to work around. For some browser implementations which color-correct images drawn to canvases by applying the display profile, apps that want to use canvases for color corrected image processing are stuck doing convoluted workarounds, such as:
 * reverse-engineer the display profile by drawing test pattern images to the canvas and inspecting the color corrected result via getImageData
 * bypass CanvasRenderingContext2D.drawImage() and use image decoders implemented in JavaScript to extract raw image data that was not tainted by the browser's color correction behavior.''
 
@@ -26,7 +26,20 @@ Some implementations convert images drawn to canvases to the sRGB color space. T
 
 * <cite>[https://github.com/whatwg/html/issues/299]</cite> <blockquote><p>Allow 2dcontexts to use deeper color buffers</p></blockquote>
 * <cite>[https://bugs.chromium.org/p/chromium/issues/detail?id=425935]</cite> <blockquote><p>Wrong color profile with 2D canvas</p></blockquote>
-* Engineers from the Google Photos, Maps and Sheets teams have expressed a desire for canvases to become color managed.  Particularly for the use case of resizing an imaging, using a canvas, prior to uploading it to the server, to save bandwidth. The problem is that the images retrieved from a canvas are in an undefined color space and no color space information is encoded by toDataURL or toBlob.
+* Engineers from the Google Photos, Maps and Sheets teams have expressed a desire for canvases to become color managed.  Particularly for the use case of resizing an image, using a canvas, prior to uploading it to the server, to save bandwidth. The problem is that the images retrieved from a canvas are in an undefined color space and no color space information is encoded by toDataURL or toBlob.
+
+## Background
+
+Color spaces are generally tuples of:
+* Chromaticity coordinates (X,Y in CIE 1931 space)
+  * Primaries (coords for 1.0 for each of R/G/B)
+  * White-point (coord for white)
+* Transfer function (often "gamma")
+
+Within the same chromaticity, 0.0 will always be min-brightness and 1.0 is max-brightness.
+However, because of the transfer function, 0.5 will not be the average physical brightness of 0.0 and 1.0.
+You can see this by making stripes of 1.0 and 0.0, and matching that pattern's brightness to a solid grey background.
+(On my machine, striped 0/1/0/1 appears equally bright as #ACACAC, or 0.67)
 
 ## Proposed Solution
 
@@ -49,7 +62,7 @@ enum CanvasColorSpaceEnum {
 enum CanvasColorEncodingEnum {
   "unorm8",      // default, 0.5 encoded as 0x80
   "unorm8-srgb", // 0.5 encoded as 0xbc
-  "float16",
+  "float16",     // IEEE 754
 };
 
 // Feature detection:
@@ -122,7 +135,7 @@ The colorEncoding attributes specifies the encoding to be used for storing pixel
 * Support for "unorm8" is mandatory. All other encodings are optional.
 * When an unsupported encoding is requested, the encoding shall fall back to "unorm8".
 * The alpha channel is always interpreted as if clamped to [0,1].
-* Float RGB channel values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a (luminance-linear) pixel value of (2,2,2) should be twice as bright as (1,1,1).
+* Float RGB channel values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a (perceptually-linear) pixel value of (2,2,2) should be twice as bright as (1,1,1).
 * Operations on encoded values always operate on decoded values, not the encoded bits.
     * I.e. in "unorm8-srgb" encoding, 0xff (1.0) minus 0xbc (0.5) equals 0xbc (0.5).
 
@@ -199,8 +212,7 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should float16 allow alpha values outside [0,1] range at any stage of the pipeline? What would they mean?
 
-* Should there be API-level support for radiance-linear (non-perceptual) color spaces or blending?
-    * This might be useful for canvas2d, but WebGL can already support most of this use case.
+* Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
 
 * Should it be "rgba8" and "rgba16f" instead of "unorm8" and "float16"?
 
