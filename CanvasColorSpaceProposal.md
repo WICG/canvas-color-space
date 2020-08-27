@@ -48,150 +48,175 @@ You can see this by making stripes of 1.0 and 0.0, and matching that pattern's b
 * Add a canvas context creation attribute to specify an encoding format for storing pixel values.
 * Color space and encoding format parameters are also extended to image storage interfaces that interact with canvases, such as CanvasPattern, ImageData and ImageBitmap.
 
-### CanvasColorSpace
+### Processing Model
 
-IDL Additions:
+IDL:
 <pre>
 // Feature enums:
+
 enum CanvasColorSpaceEnum {
   "srgb", // default
-  "display-p3",
   "rec-2020",
 };
 
+enum CanvasColorEncodingEnum {
+  "unorm8",      // default, 0.5 encoded as 0x80
+  "unorm8-srgb", // 0.5 encoded as 0xbc
+  "float16",     // IEEE 754
+};
+
 // Feature detection:
+
 interface CanvasColorSpace {
   const CanvasColorSpaceEnum srgb = "srgb";
-  const CanvasColorSpaceEnum displayP3 = "display-p3";
   const CanvasColorSpaceEnum rec2020 = "rec-2020";
 };
-</pre>
 
-Color spaces match their respective counterparts as defined in the [CSS colorspaces](https://www.w3.org/TR/css-color-4/#predefined). Support for color spaces should not be limited based on the capabilities of the user's display. There exist [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) for that purpose.
-
-When displaying a canvas element, the browser must ensure that the colors displayed on the user's screen match the colors specified in the canvas element as closely as is possible on the platform. The color space conversions responsible for this happen in compositing, and should have no script-visible side-effects.
-
-Several APIs will allow the user to specify floating-point colors outside of the usual [0, 1] interval. These values will be clamped to the range [0, 1] when being displayed.
-
-TODO: Add 'extended-srgb' and 'extended-srgb-linear' color spaces which will not be subject to this constraint.
-
-TODO: Add a mechanism for indicating that extended color spaces are to be used for HDR rendering (this should probably not be the default, because HDR rendering has substantial power costs).
-
-### HTMLCanvasElement API Changes
-
-The behavior of the HTMLCanvasElement functions toDataURL and toBlob methods are to produce encodings that match the canvas element's color space and pixel depth as closely as possible, subject to the limitations of the encoding format. It may be appropriate to add additional parameters to the relevant APIs to allow for more user control in this area.
-
-### CanvasRenderingContext2D
-
-IDL Additions:
-<pre>
-enum CanvasColorEncoding {
-  "uint8", // default
-  "float16",
+interface CanvasColorEncoding {
+  const CanvasColorEncodingEnum unorm8 = "unorm8";
+  const CanvasColorEncodingEnum unorm8Srgb = "unorm8-srgb";
+  const CanvasColorEncodingEnum float16 = "float16";
 };
 
+// Feature activation:
+
 partial dictionary CanvasRenderingContext2DSettings {
-  CanvasColorSpace colorSpace = "srgb";
-  CanvasColorEncoding colorEncoding = "uint8";
+  CanvasColorSpaceEnum colorSpace = "srgb";
+  CanvasColorEncodingEnum colorEncoding = "unorm8";
+};
+
+partial dictionary WebGLContextAttributes {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+  CanvasColorEncodingEnum colorEncoding = "unorm8";
+};
+
+dictionary ImageDataColorSettings {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+  CanvasColorEncodingEnum colorEncoding = "unorm8";
 };
 
 partial interface CanvasRenderingContext2D {
   CanvasRenderingContext2DSettings getContextAttributes();
-  ImageData getImageData(long sx, long sy, long sw, long sh, optional ImageDataSettings imageDataSettings);
-  ImageData createImageData(long sw, long sh, optional ImageDataSettings imageDataSettings);
 };
 </pre>
 
-All input colors (e.g, fillStyle or strokeStyle, and gradient stops) follow the same interpretation as CSS color literals, regardless of canvas color space. Images that do not specify a color space, when drawn to the canvas, are treated as though they specified the sRGB color space.
-
-Note that because there exists no direct access to the canvas backbuffer, it is not required that the colorEncoding be truly respected -- from the user's point of view, there will be no way to know if the true backing has higher precision than what was requested.
-
-### WebGL 2 API Changes
-
-IDL Additions:
+Example:
 <pre>
-enum WebGLPixelFormat {
-  "unorm8",      // default
-  "unorm8-srgb", // gl_FragColor value of 0.5 encoded as 0xBC
-  "float16",
-};
-
-partial dictionary WebGLContextAttributes {
-  CanvasColorSpace colorSpace = "srgb";
-  WebGLPixelFormat pixelFormat = "unorm8";
-};
+canvas.getContext('2d', { colorSpace: "rec2020",
+                          colorEncoding: "float16"} );
 </pre>
 
-Values written to WebGL backbuffers (e.g, values written to gl_FragColor or the clear color) are in the canvas's color space. In the case of "unorm8-srgb", gl_FragColors are in a color space with the primaries indicated by the specified color space, but with a linear transfer function. This means than a gl_FragColor value of 0.5 represents half of the intensity of a gl_FragColor of 1.0, and so it is encoded as 0xBC, not 0x80. All blending operations are performed in the linear space. The pixel format "unorm8-srgb" may only be used with color spaces that have the same transfer function as sRGB (TODO: determine if rec-2020 should).
+#### The colorSpace canvas creation parameter
 
-If a WebGLPixelFormat other than "unorm8" is specified, then the WebGLContextAttribute alpha must be "true". This reflects the decreasing presence of three-component pixel formats in modern graphics APIs.
+* Color spaces match their respective counterparts as defined in the [CSS colorspaces](https://www.w3.org/TR/css-color-4/#predefined).
+* All input colors (e.g, fillStyle or strokeStyle, and gradient stops) follow the same interpretation as CSS color literals, regardless of canvas color space.
+* Values written to WebGL backbuffers (e.g, values written to gl_FragColor or the clear color) are in the canvas's color space.
+* Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space.
+* Unless otherwise explicitly specified by the user, toDataURL/toBlob will produce resources in sRGB color space, with unorm8 encoding (matching existing behavior). If the destination image format supports colorspace tagging or embedded color profiles, the resource will be tagged as being in sRGB color space.
 
-TODO: Should we add values for UNPACK_COLORSPACE_CONVERSION_WEBGL to convert to all available CanvasColorSpace values?
+##### The "srgb" color space
+* This color space matches the existing canvas behavior.
+* Guarantees that color values used as fillStyle or strokeStyle exactly match the appearance of the same color value when it is used in CSS.
+* On implementations that do not color-manage CSS colors, the canvas "srgb" color space must not be color-managed either, in order to preserve color-matching between CSS and canvas-rendered content. This situation shall be referred to as the "legacy behavior".
+* All content drawn into such a 2d canvas RC must be color corrected to sRGB.
+    * Exception: User agents that implement the legacy behavior must apply color correction steps that match the color correction that is applied to image resources that are displayed via CSS.
+* Displayed canvases must be color corrected for the display if a display color profile is available. This color correction happens downstream at the compositing stage, and has no script-visible side-effects.
+* toDataURL/toBlob produce resources tagged as being in the sRGB color space, if the encoding format supports colorspace tagging or embedded color profiles.
+    * Exception: User agents that implement the legacy behavior must not encode any color space metadata.
 
-### ImageData API Changes
+##### The "rec-2020" color space
+* As per the [CSS rec-2020 color space](https://www.w3.org/TR/css-color-4/#valdef-color-rec-2020).
+* This color space has different primaries and a different transfer function than "srgb".
+* Support is optional, and should not be present on srgb-only UAs.
 
-IDL Additions:
+
+#### The colorEncoding context creation attribute
+The colorEncoding attributes specifies the encoding to be used for storing pixel channel color values.
+* Support for "unorm8" is mandatory. All other encodings are optional.
+* When an unsupported encoding is requested, the encoding shall fall back to "unorm8".
+* The alpha channel is always interpreted as if clamped to [0,1].
+* Float RGB channel values outside of [0,1] range can be used to represent colors outside of the chosen color gamut. This allows float pixel formats to represent all possible colors and brightness levels. How values outside of [0,1] are displayed depends on the capabilites of the device and output display. Some implementations may simply clamp these values to [0,1]. If the device and display are capable, a (perceptually-linear) pixel value of (2,2,2) should be twice as bright as (1,1,1).
+* Operations on encoded values always operate on decoded values, not the encoded bits.
+    * I.e. in "unorm8-srgb" encoding, 0xff (1.0) minus 0xbc (0.5) equals 0xbc (0.5).
+
+
+#### Selecting the best color space match for the user agent's display device
 <pre>
-typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
+var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020" :
+    (window.matchMedia("(color-gamut: p3)").matches ? "p3" : "srgb");
+</pre>
 
-enum ImageDataStorageFormat {
+#### Selecting the best encoding for the user agent's display device
+Selection should be based on the best color space match (see above). For srgb, at least 8 bits per component is recommended; for p3, 10 bits; and for rec2020, 12 bits.  The float16 format is suitable for any colorspace.  There may soon be a proposal to add a way of detecting HDR displays, possibly something like "window.screen.isHDR()" (TBD), which would be a good hint to use the float16 format.
+
+#### Non-standard color spaces
+For future consideration: support could be added for color space defined using the [CSS @color-profile rule](https://www.w3.org/TR/css-color-4/#at-profile).
+
+#### Compositing the canvas element
+Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display. Implementations should not expose color spaces that are unreasonble for the display.
+
+#### Feature detection
+2D rendering contexts are to expose a new getContextAttributes() method, that works much like the method of the same name on WebGLRenderingContext. The method returns the "actual context attributes" which represents the settings that were successfully applied at context creation time. The settings attribute reflects the result of running the algorithm for coercing the settings argument for 2D contexts, as well as the result of any fallbacks that may have happened as a result of options not being supported by the UA.
+
+Web apps may infer that a user agent that does not implement getContextAttributes() does not support the colorSpace and pixelFormat attributes.
+
+Note: An alternative approach that was considered was to augment the probablySupportsContext() API by making it check the second argument.  That approach is difficult to consolidate with how dictionary arguments are meant to work, where unsupported entries are just ignored.
+
+#### ImageBitmap
+
+TODO(ccameron): Review this
+ImageBitmap objects are augmented to have an internal color space attribute of type CanvasColorSpace and an internal pixelFormat attribute of type CanvasPixelFormat. The colorSpaceConversion creation attribute also accepts enum values that correspond to CanvasColorSpace values. Specifying a CanvasColorSpace value results in a conversion of the image to the specified color space.
+
+#### ImageData
+
+TODO(ccameron): Review this
+
+IDL
+<pre>
+
+enum ImageDataStorageType {
   "uint8", // default
   "uint16",
   "float32",
 };
 
-dictionary ImageDataAttributes {
-  CanvasColorSpace colorSpace = "srgb";
-  ImageDataStorageFormat storageFormat = "uint8";
-};
+typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
 
-partial interface ImageData {
-  ImageDataAttributes getAttributes();
-  ImageDataArray data;
+[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
+ Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
+ Exposed=(Window,Worker)]
+interface ImageData {
+  readonly attribute unsigned long width;
+  readonly attribute unsigned long height;
+  readonly attribute ImageDataArray data;
+
+  ImageDataColorSettings getColorSettings();
 };
 </pre>
 
-An ImageData's data attribute will be of the type indicated by the its storageFormat.
+* When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
+* createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
+* putImageData() performs a color space conversion to the color space of the destination canvas.
+* Data returned by getImageData() or passed to putImageData() are assumed to be in "srgb" color space, with "unorm8" encoding.
 
-Note that the storage formats are different from the pixel formats for 2D Canvas and WebGL pixel formats. This reflects the fact that there does not exist a Float16Array, although Float16 is a useful format for graphics buffers.
-
-### ImageBitmap
-
-TODO: Should we update createImageBitmap's colorSpaceConversion argument to take any CanvasColorSpace value. Should the behavior of "default" be solidified in its meaning?
+### Limitations
+* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has an encoding other than "unorm8". Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
 Authors of games and imaging apps are expected to be enthusiastic adopters.
 
-## Issues
+## Unresolved Issues
 
-Issues:
-
-* How should feature detection work (it should be separate for WebGL and Canvas, and potentially for CSS as well)?
-
-* For ImageData, is it appropriate to be able to query the ImageDataStorageFormat, when that can be inferred from the type of the data member? This would make sense if we supported both uint8 and unorm8.
-
-* Should we support custom color spaces based on ICC profiles?
-
-* [CSS rec-2020 color space](https://www.w3.org/TR/css-color-4/#valdef-color-rec-2020) gives a different behavior than Wikipedia. Determine if this is intended (gamma 2.4 transfer function versus sRGB transfer function).
-
-* The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the names "p3" and "rec2020" instead of "display-p3" and "rec-2020". This divergence could be confusing.
-
-* Is the naming for CanvasColorEncoding as "uint8" appropriate, or would "unorm8" be better? It may be better to avoid the term "unorm8" outside of lower level graphics APIs.
-
-* The naming for WebGLPixelFormat may want to more closely mirror existing graphics APIs:
-  * Example APIs:
-    * [WebGL 2](https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext/texStorage2D): RGBA8, SRGB8_APLHA8(?), RGBA16F
-    * [MTLPixelFormat](https://developer.apple.com/documentation/metal/mtlpixelformat?language=objc): MTLPixelFormatRGBA8Unorm,
- MTLPixelFormatRGBA8Unorm_sRGB, MTLPixelFormatRGBA16Float
-    * [VKFormat](https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkFormat.html): VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_R16G16B16A16_SFLOAT
-    * [DXGIFormat](https://docs.microsoft.com/en-us/windows/win32/api/dxgiformat/ne-dxgiformat-dxgi_format): DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R16G16B16A16_FLOAT
-    * [OpenGL ES 3](https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml): GL_RGBA8, GL_RGBA8_SNORM, GL_RGBA16F
-  * If we follow this scheme, then a "default" value will need to specified (because it will need to be harmonized with the alpha value).
+* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves.
 
 * Should float16 allow alpha values outside [0,1] range at any stage of the pipeline? What would they mean?
 
 * Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
+
+* Should it be "rgba8" and "rgba16f" instead of "unorm8" and "float16"?
+
+* Should context creation throw on an unrecognized, non-undefined creation attribute?
 
 ## Proposal History
 
