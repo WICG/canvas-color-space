@@ -56,6 +56,7 @@ IDL:
 
 enum CanvasColorSpaceEnum {
   "srgb", // default
+  "display-p3",
   "rec-2020",
 };
 
@@ -69,6 +70,7 @@ enum CanvasColorEncodingEnum {
 
 interface CanvasColorSpace {
   const CanvasColorSpaceEnum srgb = "srgb";
+  const CanvasColorSpaceEnum displayP3 = "display-p3";
   const CanvasColorSpaceEnum rec2020 = "rec-2020";
 };
 
@@ -217,6 +219,8 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 * Should it be "rgba8" and "rgba16f" instead of "unorm8" and "float16"?
 
 * Should context creation throw on an unrecognized, non-undefined creation attribute?
+
+* The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the names "p3" and "rec2020" instead of "display-p3" and "rec-2020". This divergence could be confusing.
 
 ## Proposal History
 
