@@ -165,14 +165,14 @@ ImageBitmap objects (unless created with ``colorSpaceConversion="none"``) should
 
 Add the following types to be used by `ImageData`.
 <pre>
-enum ImageDataEncoding {
+enum ImageDataStorageType {
   "uint8", // default
   "uint16",
   "float32",
 };
 dictionary ImageDataSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  ImageDataStorageType encoding = "uint8";
+  ImageDataStorageType storageType = "uint8";
 };
 typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
 </pre>
@@ -192,16 +192,16 @@ The changes to this interface are:
 * The ImageDataSettings attribute may be queried using `getImageDataSettings`.
 * The constructor and attribute that used to be a `Uint8ClampedArray` are now a `ImageDataArray` union, which can specify data in multiple formats.
 
-The type of the ``data`` attribute is determined by the ``encoding`` parameter according to the following table.
+The type of the ``data`` attribute is determined by the ``storageType`` parameter according to the following table.
 
-| ``encoding`` Value | ``data`` Type |
+| ``storageType`` Value | ``data`` Type |
 |-|-|
 | ``"uint8"`` | ``Uint8ClampedArray`` |
 | ``"uint16"`` | ``Uint16Array`` |
 | ``"float32"`` | ``Float32Array`` |
 
 
-The constructor that takes both an `ImageDataArray` and an `ImageDataSettings` will throw an exception if the type of the `ImageDataArray` is incompatible with the type specified in `ImageDataSettings` (e.g, `ImageDataArray` is a `Float32Array`, but `ImageDataSettings` specifies an encoding that is set to `"uint8"`).
+The constructor that takes both an `ImageDataArray` and an `ImageDataSettings` will throw an exception if the type of the `ImageDataArray` is incompatible with the type specified in `ImageDataSettings` (e.g, `ImageDataArray` is a `Float32Array`, but `ImageDataSettings` specifies ``storageType="uint8"``).
 
 When an ``ImageData`` is used in a canvas (e.g, in ``putImageData``), the data is converted from the ``ImageData``'s color space to the color space of the canvas.
 
@@ -213,13 +213,13 @@ partial interface CanvasRenderingContext2D {
 }
 </pre>
 
-The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default values of ``encoding="uint8"`` and ``colorSpace="srgb"`` will be used (these defaults match previous behavior).
+The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default values of ``storageType="uint8"`` and ``colorSpace="srgb"`` will be used (these defaults match previous behavior).
 
 The ``getImageData`` method is responsible for converting the data from the canvas' internal format to the format requested in the ``ImageDataSettings``.
 
 
 ### Limitations
-* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has an encoding other than ``"uint8"``. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
+* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has a storage type other than ``"uint8"``. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
