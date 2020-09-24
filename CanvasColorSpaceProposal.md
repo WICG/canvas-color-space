@@ -92,11 +92,6 @@ partial dictionary WebGLContextAttributes {
   CanvasColorEncodingEnum colorEncoding = "unorm8";
 };
 
-dictionary ImageDataColorSettings {
-  CanvasColorSpaceEnum colorSpace = "srgb";
-  CanvasColorEncodingEnum colorEncoding = "unorm8";
-};
-
 partial interface CanvasRenderingContext2D {
   CanvasRenderingContext2DSettings getContextAttributes();
 };
@@ -166,43 +161,67 @@ Note: An alternative approach that was considered was to augment the probablySup
 
 #### ImageBitmap
 
-TODO(ccameron): Review this
-ImageBitmap objects are augmented to have an internal color space attribute of type CanvasColorSpace and an internal pixelFormat attribute of type CanvasPixelFormat. The colorSpaceConversion creation attribute also accepts enum values that correspond to CanvasColorSpace values. Specifying a CanvasColorSpace value results in a conversion of the image to the specified color space.
+ImageBitmap objects (unless created with ``colorSpaceConversion="none"``) should keep track of their internal color space, and should store their contents at highest fidelity possible, subject to implementation limitations.
 
 #### ImageData
 
-TODO(ccameron): Review this
-
-IDL
+Add the following types to be used by `ImageData`.
 <pre>
-
 enum ImageDataStorageType {
   "uint8", // default
   "uint16",
   "float32",
 };
-
+dictionary ImageDataSettings {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+  ImageDataStorageType storageType = "uint8";
+};
 typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
+</pre>
 
-[Constructor(unsigned long sw, unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
- Constructor(ImageDataArray data, unsigned long sw, optional unsigned long sh, optional ImageDataColorSettings imageDataColorSettings),
- Exposed=(Window,Worker)]
-interface ImageData {
-  readonly attribute unsigned long width;
-  readonly attribute unsigned long height;
+Update the `ImageData` interface to the include the following.
+<pre>
+partial interface ImageData {
+  constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings);
+  constructor(ImageDataArray data, unsigned long sw, unsigned long sh, optional ImageDataSettings);
+  readonly ImageDataSettings getImageDataSettings();
   readonly attribute ImageDataArray data;
-
-  ImageDataColorSettings getColorSettings();
 };
 </pre>
 
-* When using the constructor that takes an ImageDataArray parameter, the "storageType" setting is ignored.
-* createImageData() and getImageData() produce an ImageData object with the same color space as the source canvas, using an ImageDataArray of a type that is appropriate for the pixelFormat of the source canvas (smallest possible numeric size that guarantees no loss of precision).
-* putImageData() performs a color space conversion to the color space of the destination canvas.
-* Data returned by getImageData() or passed to putImageData() are assumed to be in "srgb" color space, with "unorm8" encoding.
+The changes to this interface are:
+* The constructors now take an optional `ImageDataSettings` dictionary.
+* The ImageDataSettings attribute may be queried using `getImageDataSettings`.
+* The constructor and attribute that used to be a `Uint8ClampedArray` are now a `ImageDataArray` union, which can specify data in multiple formats.
+
+The type of the ``data`` attribute is determined by the ``storageType`` parameter according to the following table.
+
+| ``storageType`` Value | ``data`` Type |
+|-|-|
+| ``"uint8"`` | ``Uint8ClampedArray`` |
+| ``"uint16"`` | ``Uint16Array`` |
+| ``"float32"`` | ``Float32Array`` |
+
+
+The constructor that takes both an `ImageDataArray` and an `ImageDataSettings` will throw an exception if the type of the `ImageDataArray` is incompatible with the type specified in `ImageDataSettings` (e.g, `ImageDataArray` is a `Float32Array`, but `ImageDataSettings` specifies ``storageType="uint8"``).
+
+When an ``ImageData`` is used in a canvas (e.g, in ``putImageData``), the data is converted from the ``ImageData``'s color space to the color space of the canvas.
+
+To the ``CanvasRenderingContext2D`` interface, add
+<pre>
+partial interface CanvasRenderingContext2D {
+    ImageData createImageData(long sw, long sh, optional ImageDataSettings settings);
+    ImageData getImageData(long sx, long sy, long sw, long sh, optional ImageDataSettings settings);
+}
+</pre>
+
+The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default values of ``storageType="uint8"`` and ``colorSpace="srgb"`` will be used (these defaults match previous behavior).
+
+The ``getImageData`` method is responsible for converting the data from the canvas' internal format to the format requested in the ``ImageDataSettings``.
+
 
 ### Limitations
-* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has an encoding other than "unorm8". Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
+* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has a storage type other than ``"uint8"``. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
