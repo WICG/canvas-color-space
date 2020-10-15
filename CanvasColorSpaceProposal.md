@@ -3,6 +3,7 @@
 ## Use Case Description
 * Contents displayed through a canvas element should be in a well-defined color space to minimize differences in appearance across browsers and display devices.
 * Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
+* Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters for artistic (e.g, photo and paint apps) and for e-commerce (e.g, product presentation) use cases.
 
 ### Current Limitations
 * The color space of canvases is undefined in the current specification, although is de facto sRGB.
@@ -13,6 +14,9 @@
 
 * <cite>[https://github.com/whatwg/html/issues/299]</cite> <blockquote><p>Allow 2dcontexts to use deeper color buffers</p></blockquote>
 * <cite>[https://bugs.chromium.org/p/chromium/issues/detail?id=425935]</cite> <blockquote><p>Wrong color profile with 2D canvas</p></blockquote>
+* Engineers from the Google Photos, Maps and Sheets teams have expressed a desire for canvases to be color managed. Particularly for the use case of resizing an image, using a canvas, prior to uploading it to the server, to save bandwidth. The problem is that the images retrieved from a canvas are in an undefined color space and no color space information is encoded by toDataURL or toBlob.
+
+
 
 ### Related Specifications
 * The [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/#color-gamut) specification defines the ``color-gamut`` media query to determine the capabilities of the current display device.
