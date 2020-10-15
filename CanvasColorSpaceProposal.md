@@ -111,7 +111,7 @@ The ``colorEncoding`` attribute specifies the encoding to be used for storing pi
 
 * Values stored in WebGL backbuffers are in the canvas's color space.
 * Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* For the color encoding of ``"unorm-srgb"``, the interpretation of values written by ``gl_FragColor`` is as follows:
+* For the color encoding of ``"unorm-srgb8"``, the interpretation of values written by ``gl_FragColor`` is as follows:
   * The color value is in a linear color space.
   * The inverse sRGB transfer function is applied only after blending has occurred.
   * E.g, if the value ``0.5`` is written in ``gl_FragColor``, the result will be stored as ``0xbc``.
