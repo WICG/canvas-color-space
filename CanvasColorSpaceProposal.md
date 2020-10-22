@@ -25,7 +25,7 @@
 ## Proposed Solution
 
 * Clearly define the default color space of canvases to be ``srgb``, and the default encoding to be 8 bits per pixel.
-* Add canvas context creation attributes to change the color space and encoding of a canvas.
+* Add canvas context creation attributes to specify the color space and encoding of a canvas.
 * Clarify behavior for drawing into canvases, compositing canvases, and exporting canvas contents.
 * Add mechanisms to specify the color space and encoding of ``ImageData`` objects.
 
@@ -111,7 +111,7 @@ The ``colorEncoding`` attribute specifies the encoding to be used for storing pi
 
 * Values stored in WebGL backbuffers are in the canvas's color space.
 * Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* For the color encoding of ``"unorm-srgb8"``, the interpretation of values written by ``gl_FragColor`` is as follows:
+* For the color encoding of ``"unorm8-srgb"``, the interpretation of values written by ``gl_FragColor`` is as follows:
   * The color value is in a linear color space.
   * The inverse sRGB transfer function is applied only after blending has occurred.
   * E.g, if the value ``0.5`` is written in ``gl_FragColor``, the result will be stored as ``0xbc``.
@@ -119,7 +119,7 @@ The ``colorEncoding`` attribute specifies the encoding to be used for storing pi
 
 #### Compositing the canvas element
 
-Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
+Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display. Implementations should not expose color spaces that are unreasonble for the display.
 
 #### Feature detection
 
