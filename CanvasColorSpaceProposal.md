@@ -111,7 +111,7 @@ The ``colorEncoding`` attribute specifies the encoding to be used for storing pi
 
 * Values stored in WebGL backbuffers are in the canvas's color space.
 * Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* The encodings for specific color value differ between ``"unorm8"`` and ``"unorm8-srgb"``.
+* The encodings for specific color values differ between ``"unorm8"`` and ``"unorm8-srgb"``.
 * For ``"unorm8"``, the color encoding function is:
 <pre>
 function encodeUnorm8(val) { return val * 0xff; }
