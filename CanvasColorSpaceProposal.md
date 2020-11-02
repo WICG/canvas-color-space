@@ -16,8 +16,6 @@
 * <cite>[https://bugs.chromium.org/p/chromium/issues/detail?id=425935]</cite> <blockquote><p>Wrong color profile with 2D canvas</p></blockquote>
 * Engineers from the Google Photos, Maps and Sheets teams have expressed a desire for canvases to be color managed. Particularly for the use case of resizing an image, using a canvas, prior to uploading it to the server, to save bandwidth. The problem is that the images retrieved from a canvas are in an undefined color space and no color space information is encoded by toDataURL or toBlob.
 
-
-
 ### Related Specifications
 * The [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/#color-gamut) specification defines the ``color-gamut`` media query to determine the capabilities of the current display device.
 * The [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification defines several color spaces that will be used in this specification. At time of writing this specification is partially implemented on some browsers.
@@ -89,6 +87,7 @@ canvas.getContext('2d', { colorSpace: "rec2020",
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
 * Color spaces match their respective counterparts as defined in the [predefined color spaces](https://www.w3.org/TR/css-color-4/#predefined) section of the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification.
 * When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
+* Implementations should not limit the set of exposed color spaces based on the capabilities of the display.
 
 #### The ``colorEncoding`` canvas creation attribute
 
@@ -127,7 +126,7 @@ function encodeUnorm8Srgb(val) {
 
 #### Compositing the canvas element
 
-Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display. Implementations should not expose color spaces that are unreasonble for the display.
+Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
 
 #### Feature detection
 
