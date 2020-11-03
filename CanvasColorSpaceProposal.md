@@ -87,8 +87,7 @@ canvas.getContext('2d', { colorSpace: "rec2020",
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
 * Color spaces match their respective counterparts as defined in the [predefined color spaces](https://www.w3.org/TR/css-color-4/#predefined) section of the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification.
 * When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
-* Implementations should not limit the set of exposed color spaces based on the capabilities of the display.
-* The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
+* Implementations should not limit the set of exposed color spaces based on the capabilities of the display. The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
 [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/) specification.
 
 #### The ``colorEncoding`` canvas creation attribute
