@@ -23,7 +23,7 @@
 ## Proposed Solution
 
 * Clearly define the default color space of canvases to be ``srgb``, and the default encoding to be 8 bits per pixel.
-* Add canvas context creation attributes to specify the color space and encoding of a canvas.
+* Add canvas context creation attributes to specify the color space, storage format, and color encoding function of a canvas.
 * Clarify behavior for drawing into canvases, compositing canvases, and exporting canvas contents.
 * Add mechanisms to specify the color space and encoding of ``ImageData`` objects.
 
@@ -39,9 +39,9 @@ enum CanvasColorSpaceEnum {
   "rec-2020",
 };
 
-enum CanvasColorEncodingEnum {
-  "unorm8",      // default, 0.5 encoded as 0x80
-  "unorm8-srgb", // 0.5 encoded as 0xbc
+enum CanvasStorageFormatEnum {
+  "unorm8",      // default
+  "unorm8-srgb", // Same as unorm8, but with an sRGB color encoding function
   "float16",     // IEEE 754
 };
 
@@ -53,22 +53,22 @@ interface CanvasColorSpace {
   const CanvasColorSpaceEnum rec2020 = "rec-2020";
 };
 
-interface CanvasColorEncoding {
-  const CanvasColorEncodingEnum unorm8 = "unorm8";
-  const CanvasColorEncodingEnum unorm8Srgb = "unorm8-srgb";
-  const CanvasColorEncodingEnum float16 = "float16";
+interface CanvasStorageFormat {
+  const CanvasStorageFormatEnum unorm8 = "unorm8";
+  const CanvasStorageFormatEnum unorm8Srgb = "unorm8-srgb";
+  const CanvasStorageFormatEnum float16 = "float16";
 };
 
 // Feature activation:
 
 partial dictionary CanvasRenderingContext2DSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  CanvasColorEncodingEnum colorEncoding = "unorm8";
+  CanvasStorageFormatEnum storageFormat = "unorm8";
 };
 
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  CanvasColorEncodingEnum colorEncoding = "unorm8";
+  CanvasStorageFormatEnum storageFormat = "unorm8";
 };
 
 partial interface CanvasRenderingContext2D {
@@ -79,7 +79,7 @@ partial interface CanvasRenderingContext2D {
 Example:
 <pre>
 canvas.getContext('2d', { colorSpace: "rec2020",
-                          colorEncoding: "float16"} );
+                          storageFormat: "float16"} );
 </pre>
 
 #### The ``colorSpace`` canvas creation attribute
@@ -90,11 +90,11 @@ The ``colorSpace`` attribute specifies the color space for the backing storage o
 * Implementations should not limit the set of exposed color spaces based on the capabilities of the display. The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
 [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/) specification.
 
-#### The ``colorEncoding`` canvas creation attribute
+#### The ``storageFormat`` canvas creation attribute
 
-The ``colorEncoding`` attribute specifies the encoding to be used for storing pixel channel color values.
-* Support for ``"unorm8"`` is mandatory. All other encodings are optional.
-* When an unsupported encoding is requested, the encoding shall fall back to ``"unorm8"``.
+The ``storageFormat`` attribute specifies the format for storing individual pixel color channel values, as well as the color encoding function to be used for non-alpha channels, if any.
+* Support for ``"unorm8"`` is mandatory. All other formats are optional.
+* When an unsupported format is requested, the format shall fall back to ``"unorm8"``.
 
 #### 2D canvas behavior
 
@@ -109,21 +109,23 @@ The ``colorEncoding`` attribute specifies the encoding to be used for storing pi
 
 #### WebGL behavior
 
-* Values stored in WebGL backbuffers are in the canvas's color space.
+* Values stored in WebGL backbuffers are in the canvas' color space.
 * Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* The encodings for specific color values differ between ``"unorm8"`` and ``"unorm8-srgb"``.
-* For ``"unorm8"``, the color encoding function is:
+* The color encoding function is defined as follows:
+* For formats of ``"unorm8"`` and ``"float16"`` the color encoding function is:
 <pre>
-function encodeUnorm8(val) { return val * 0xff; }
+function encode(val) { return val; }
 </pre>
-* For ``"unorm8-srgb"``, the color encoding function is:
+* For the format ``"unorm8-srgb"``, the color encoding function is:
 <pre>
-function encodeUnorm8Srgb(val) {
-  if (val < 0.0031308) return 12.92 * val * 0xff;
-  return (1.055 * Math.pow(val, 0.41666) - 0.055) * 0xff;
+function encode(val) {
+  if (val < 0) return 0.0;
+  else if (val < 0.0031308) return 12.92 * val;
+  else if (val < 1) return (1.055 * Math.pow(val, 0.41666) - 0.055);
+  else return 1.0;
 }
 </pre>
-* For all color encodings, the values stored in the framebuffer are in the canvas' color space.
+* For all formats, the values stored in the framebuffer are in the canvas' color space.
 
 #### Compositing the canvas element
 
