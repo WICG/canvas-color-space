@@ -64,11 +64,13 @@ interface CanvasStorageFormat {
 partial dictionary CanvasRenderingContext2DSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasStorageFormatEnum storageFormat = "unorm8";
+  boolean highDynamicRange = false;
 };
 
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasStorageFormatEnum storageFormat = "unorm8";
+  boolean highDynamicRange = false;
 };
 
 partial interface CanvasRenderingContext2D {
@@ -95,6 +97,32 @@ The ``colorSpace`` attribute specifies the color space for the backing storage o
 The ``storageFormat`` attribute specifies the format for storing individual pixel color channel values, as well as the color encoding function to be used for non-alpha channels, if any.
 * Support for ``"unorm8"`` is mandatory. All other formats are optional.
 * When an unsupported format is requested, the format shall fall back to ``"unorm8"``.
+
+#### The ``highDynamicRange`` canvas creation attribute
+
+The ``highDynamicRange`` attribute specifies whether or not this canvas can display luminance greater than that of the color ``(1,1,1)``.
+* It is possible to represent colors of arbitrarily high luminance using floating-point storage formats.
+* Unless ``highDynamicRange`` is set to ``true``, colors must have their luminance clamped to the standard dynamic range.
+* The motivation for this behavior is that enabling the display of high dynamic range content can come at a significant performance and power cost which should not be imposed unless explicitly requested.
+
+#### Interpreting color values outside of the domain of [0, 1]
+
+Some storage formats allow specifying color values that are outside of the domain of [0, 1].
+For all color spaces, the transfer function is extended to the domain of all real numbers as follows.
+* For color values greater than 1, the transfer functions are extended by not clamping the function at 1.
+* For color values less than 0, all color space transfer functions are extended by point symmetry around 0.
+In symbols, this means that for a transfer function of ``trFn`` the extended transfer function will be ``exTrFn(val) = sign(val) * trFn(abs(val))``.
+
+For example, the extension of the sRGB transfer function defined in the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification to the full domain of real values would be as follows:
+<pre>
+function sRGBToLinear(val) {
+if (val < -0.04045)
+  return -Math.pow((-val + 0.055) / 1.055, 2.4);
+else if (val <= 0.04045)
+  return val / 12.92;
+else
+  return Math.pow((val + 0.055) / 1.055, 2.4);
+</pre>
 
 #### 2D canvas behavior
 
@@ -130,6 +158,9 @@ function encode(val) {
 #### Compositing the canvas element
 
 Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
+
+The chromiumance of color values outside of [0, 1] is not to be clamped, and extended values may be used to display colors outside of the gamut defined by the canvas' color space's primaries.
+This is in contrast with luminance, which may be clamped based on the value of the ``highDynamicRange`` attribute.
 
 #### Feature detection
 
@@ -216,7 +247,7 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves.
 
-* Should float16 allow alpha values outside [0,1] range at any stage of the pipeline? What would they mean?
+* Through what mechanism should HDR metadata be specified? To what extent should tonemapping be specified (e.g, should it be specified that tonemapping not alter SDR values).
 
 * Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
 
