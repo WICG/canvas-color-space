@@ -42,6 +42,7 @@ enum CanvasColorSpaceEnum {
 enum CanvasStorageFormatEnum {
   "unorm8",      // default
   "unorm8-srgb", // Same as unorm8, but with an sRGB color encoding function
+  "unorm16",
   "float16",     // IEEE 754
 };
 
@@ -56,6 +57,7 @@ interface CanvasColorSpace {
 interface CanvasStorageFormat {
   const CanvasStorageFormatEnum unorm8 = "unorm8";
   const CanvasStorageFormatEnum unorm8Srgb = "unorm8-srgb";
+  const CanvasStorageFormatEnum unorm16 = "unorm16";
   const CanvasStorageFormatEnum float16 = "float16";
 };
 
@@ -140,7 +142,7 @@ else
 * Values stored in WebGL backbuffers are in the canvas' color space.
 * Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
 * The color encoding function is defined as follows:
-* For formats of ``"unorm8"`` and ``"float16"`` the color encoding function is:
+* For formats of ``"unorm8"``, ``"unorm16"``, and ``"float16"`` the color encoding function is:
 <pre>
 function encode(val) { return val; }
 </pre>
