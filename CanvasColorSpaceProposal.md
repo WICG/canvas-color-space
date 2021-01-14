@@ -35,8 +35,11 @@ IDL:
 
 enum CanvasColorSpaceEnum {
   "srgb", // default
+  "srgb-linear",
   "display-p3",
-  "rec-2020",
+  "display-p3-linear",
+  "rec2020",
+  "rec2020-linear",
 };
 
 enum CanvasStorageFormatEnum {
@@ -50,8 +53,11 @@ enum CanvasStorageFormatEnum {
 
 interface CanvasColorSpace {
   const CanvasColorSpaceEnum srgb = "srgb";
+  const CanvasColorSpaceEnum srgbLinear = "srgb-linear";
   const CanvasColorSpaceEnum displayP3 = "display-p3";
-  const CanvasColorSpaceEnum rec2020 = "rec-2020";
+  const CanvasColorSpaceEnum displayP3Linear = "display-p3-linear";
+  const CanvasColorSpaceEnum rec2020 = "rec2020";
+  const CanvasColorSpaceEnum rec2020Linear = "rec2020-linear";
 };
 
 interface CanvasStorageFormat {
@@ -234,7 +240,7 @@ The ``getImageData`` method is responsible for converting the data from the canv
 
 #### Selecting the best color space match for the user agent's display device
 <pre>
-var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec-2020" :
+var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020" :
                 (window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb");
 </pre>
 
@@ -257,7 +263,9 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 
 * Should context creation throw on an unrecognized, non-undefined creation attribute?
 
-* The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the names "p3" and "rec2020", while the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#predefined) uses the names "display-p3" and "rec-2020". This divergence could be confusing.
+* The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the names "srgb" and "p3", while the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#predefined) uses the names "sRGB" and "display-p3". This divergence could be confusing.
+
+* The [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#predefined) specification does not include srgb-linear, display-p3-linear, or rec2020-linear.
 
 ## Proposal History
 
