@@ -41,7 +41,6 @@ enum CanvasColorSpaceEnum {
 
 enum CanvasStorageFormatEnum {
   "unorm8",      // default
-  "unorm8-srgb", // Same as unorm8, but with an sRGB color encoding function
   "unorm16",
   "float16",     // IEEE 754
 };
@@ -56,7 +55,6 @@ interface CanvasColorSpace {
 
 interface CanvasStorageFormat {
   const CanvasStorageFormatEnum unorm8 = "unorm8";
-  const CanvasStorageFormatEnum unorm8Srgb = "unorm8-srgb";
   const CanvasStorageFormatEnum unorm16 = "unorm16";
   const CanvasStorageFormatEnum float16 = "float16";
 };
@@ -71,6 +69,9 @@ partial dictionary CanvasRenderingContext2DSettings {
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasStorageFormatEnum storageFormat = "unorm8";
+  boolean framebufferColorEncodingSRGB = false;
+};
+
 };
 </pre>
 
@@ -126,14 +127,23 @@ else
 
 #### WebGL behavior
 
-* Values stored in WebGL backbuffers are in the canvas' color space.
-* Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* The color encoding function is defined as follows:
-* For formats of ``"unorm8"``, ``"unorm16"``, and ``"float16"`` the color encoding function is:
+Values stored in WebGL's default back buffer are in the canvas' color space.
+This includes values accessed directly (e.g, through `ReadPixels`) and all values written via shaders in the graphics pipeline.
+
+The context attribute ``framebufferColorEncodingSRGB`` controls the color encoding function applied to the fragment shader's color output value when writing to the WebGL default back buffer.
+* If set to ``false`` then:
+  * The behavior is the same as when ``FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING`` _is not_ ``SRGB`` (as described in Section 4.1.8 "sRGB Conversion" of the [OpenGL ES 3.0.6 specification](https://www.khronos.org/registry/OpenGL/specs/es/3.0/es_spec_3.0.pdf)).
+  * The color encoding function is the identity function.
+  * Consequently, the value assigned to the fragment shader's color output variable is interpreted as being in the canvas' color space.
+  * In code, the precise color encoding function is:
 <pre>
 function encode(val) { return val; }
 </pre>
-* For the format ``"unorm8-srgb"``, the color encoding function is:
+* If set to ``true`` then:
+  * The behavior is the same as when ``FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING`` _is_ ``SRGB`` (as described in Section 4.1.8 "sRGB Conversion" of the [OpenGL ES 3.0.6 specification](https://www.khronos.org/registry/OpenGL/specs/es/3.0/es_spec_3.0.pdf)).
+  * The color encoding function is the sRGB encoding transfer function, which converts from linear values to sRGB values.
+  * Consequently, the value assigned to the fragment shader's color output variable can be interpreted as being in a linear version of the canvas' color space. (This interpretation applies only to the two color spaces that use the sRGB transfer function, namely, ``"srgb"`` and ``"display-p3"``. It does not apply to ``"rec2020"``, because that space has a non-sRGB transfer function).
+  * In code, the precise color encoding function is:
 <pre>
 function encode(val) {
   if (val < 0) return 0.0;
@@ -142,7 +152,8 @@ function encode(val) {
   else return 1.0;
 }
 </pre>
-* For all formats, the values stored in the framebuffer are in the canvas' color space.
+
+The ``WebGLContextAttributes`` settings of ``alpha:false`` and ``framebufferColorEncodingSRGB:true`` are only compatible with ``storageFormat:"unorm8"``. If any other value of ``storageFormat`` is specified, then ``alpha`` will be overridden to ``true`` and ``framebufferColorEncodingSRGB`` will be overridden to ``false``.
 
 #### Compositing the canvas element
 
