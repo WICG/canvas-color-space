@@ -74,10 +74,6 @@ partial dictionary WebGLContextAttributes {
   CanvasStorageFormatEnum storageFormat = "unorm8";
   boolean highDynamicRange = false;
 };
-
-partial interface CanvasRenderingContext2D {
-  CanvasRenderingContext2DSettings getContextAttributes();
-};
 </pre>
 
 Example:
@@ -163,12 +159,6 @@ Canvas contents are composited in accordance with the canvas element's style (e.
 
 The chromiumance of color values outside of [0, 1] is not to be clamped, and extended values may be used to display colors outside of the gamut defined by the canvas' color space's primaries.
 This is in contrast with luminance, which may be clamped based on the value of the ``highDynamicRange`` attribute.
-
-#### Feature detection
-
-2D rendering contexts are to expose a new ``getContextAttributes`` method that works much like the method of the same name on WebGLRenderingContext. The method returns the true context attributes, which represent the settings that were successfully applied at context creation time.
-
-Web apps may infer that a user agent that does not implement ``getContextAttributes`` does not support the colorSpace and pixelFormat attributes.
 
 #### ImageBitmap
 
