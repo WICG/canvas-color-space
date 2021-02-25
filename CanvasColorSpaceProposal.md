@@ -66,13 +66,11 @@ interface CanvasStorageFormat {
 partial dictionary CanvasRenderingContext2DSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasStorageFormatEnum storageFormat = "unorm8";
-  boolean highDynamicRange = false;
 };
 
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
   CanvasStorageFormatEnum storageFormat = "unorm8";
-  boolean highDynamicRange = false;
 };
 </pre>
 
@@ -95,13 +93,6 @@ The ``colorSpace`` attribute specifies the color space for the backing storage o
 The ``storageFormat`` attribute specifies the format for storing individual pixel color channel values, as well as the color encoding function to be used for non-alpha channels, if any.
 * Support for ``"unorm8"`` is mandatory. All other formats are optional.
 * When an unsupported format is requested, the format shall fall back to ``"unorm8"``.
-
-#### The ``highDynamicRange`` canvas creation attribute
-
-The ``highDynamicRange`` attribute specifies whether or not this canvas can display luminance greater than that of the color ``(1,1,1)``.
-* It is possible to represent colors of arbitrarily high luminance using floating-point storage formats.
-* Unless ``highDynamicRange`` is set to ``true``, colors must have their luminance clamped to the standard dynamic range.
-* The motivation for this behavior is that enabling the display of high dynamic range content can come at a significant performance and power cost which should not be imposed unless explicitly requested.
 
 #### Interpreting color values outside of the domain of [0, 1]
 
@@ -158,7 +149,7 @@ function encode(val) {
 Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
 
 The chromiumance of color values outside of [0, 1] is not to be clamped, and extended values may be used to display colors outside of the gamut defined by the canvas' color space's primaries.
-This is in contrast with luminance, which may be clamped based on the value of the ``highDynamicRange`` attribute.
+This is in contrast with luminance, which is to be clamped to the maximum standard dynamic range luminance, unless high dynamic range is explicitly enabled for the canvas element.
 
 #### ImageBitmap
 
