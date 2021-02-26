@@ -120,6 +120,20 @@ Note that if sRGB framebuffer color encoding is enabled for the default backbuff
 In that situation, the linear-to-sRGB transformation function is applied to the assigned value before it is written.
 Consequently, the value assigned to the fragment shader's color output variable can be interpreted as being in a linear version of the canvas' color space.
 
+#### WebGPU behavior
+
+WebGPU's context configuration is specified dynamically using the `GPUCanvasContext` method `configureSwapChain`, which takes a `GPUSwapChainDescriptor` argument.
+Add an additional entry to `GPUSwapChainDescriptor` for the color space of the swap chain.
+<pre>
+partial dictionary GPUSwapChainDescriptor {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+};
+</pre>
+
+All values read from and written to the swap chain are in the canvas' color space.
+
+As described in the WebGL section above, if the ``GPUSwapChainDescriptor``'s ``format`` is ``"rgba8unorm-srgb"`` or ``"bgra8unorm-srgb"``, then the value assigned to the color output of the fragment shader can be interpreted as being in a linear version of the canvas' color space, because it will have the linear-to-sRGB transformation applied to it before it is written to the swap chain.
+
 #### Compositing the canvas element
 
 Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
