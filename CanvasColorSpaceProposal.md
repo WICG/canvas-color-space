@@ -15,6 +15,14 @@ The goals of this proposal are to:
 * Ensure that canvas content's color is well-defined, to minimize differences in appearance across browsers and display devices
 * Allow 2D Canvas, WebGL, and WebGPU to take advantage of a wider color gamut.
 
+Non-goals of this proposal are:
+* Ultra-wide color gamut color space support (e.g, Rec2020) and high dynamic range support.
+  * This topic is deferred to a subsequent proposal.
+* High bit depth 2D Canvas and ImageData support.
+  * For 2D Canvas and ImageData, this topic will be addressed by UWCG and HDR proposal, because such color spaces require more than the default of 8 bits per pixel.
+  * For WebGL, this topic is addressed in a separate pixel format proposal.
+  * For WebGPU, high bit depth pixel formats may be specified in ``GPUSwapChainDescriptor``.
+
 ### Use Cases
 
 Examples of web applications that will benefit from a well-defined color space and wide color gamut support include:
@@ -37,7 +45,7 @@ Examples of web applications that will benefit from a well-defined color space a
 ## Proposed Solution
 
 This proposal aims to accomplish the above stated goals by:
-* Introducing a set of color spaces that are available for use.
+* Introducing sRGB and Display-P3 as the set of color spaces that are available for use by canvas APIs.
 * Adding an API whereby 2D Canvas, WebGL, WebGPU, and ImageData may specify one of those color spaces.
 
 This proposal will also clarify:
@@ -56,14 +64,6 @@ IDL:
 enum CanvasColorSpaceEnum {
   "srgb", // default
   "display-p3",
-  "rec2020",
-};
-
-enum CanvasStorageFormatEnum {
-  "unorm8",      // default
-  "unorm8-srgb", // Same as unorm8, but with an sRGB color encoding function
-  "unorm16",
-  "float16",     // IEEE 754
 };
 
 // Feature detection:
@@ -71,33 +71,22 @@ enum CanvasStorageFormatEnum {
 interface CanvasColorSpace {
   const CanvasColorSpaceEnum srgb = "srgb";
   const CanvasColorSpaceEnum displayP3 = "display-p3";
-  const CanvasColorSpaceEnum rec2020 = "rec2020";
-};
-
-interface CanvasStorageFormat {
-  const CanvasStorageFormatEnum unorm8 = "unorm8";
-  const CanvasStorageFormatEnum unorm8Srgb = "unorm8-srgb";
-  const CanvasStorageFormatEnum unorm16 = "unorm16";
-  const CanvasStorageFormatEnum float16 = "float16";
 };
 
 // Feature activation:
 
 partial dictionary CanvasRenderingContext2DSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  CanvasStorageFormatEnum storageFormat = "unorm8";
 };
 
 partial dictionary WebGLContextAttributes {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  CanvasStorageFormatEnum storageFormat = "unorm8";
 };
 </pre>
 
 Example:
 <pre>
-canvas.getContext('2d', { colorSpace: "rec2020",
-                          storageFormat: "float16"} );
+canvas.getContext('2d', { colorSpace: "display-p3"} );,
 </pre>
 
 #### The ``colorSpace`` canvas creation attribute
@@ -107,31 +96,6 @@ The ``colorSpace`` attribute specifies the color space for the backing storage o
 * When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
 * Implementations should not limit the set of exposed color spaces based on the capabilities of the display. The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
 [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/) specification.
-
-#### The ``storageFormat`` canvas creation attribute
-
-The ``storageFormat`` attribute specifies the format for storing individual pixel color channel values, as well as the color encoding function to be used for non-alpha channels, if any.
-* Support for ``"unorm8"`` is mandatory. All other formats are optional.
-* When an unsupported format is requested, the format shall fall back to ``"unorm8"``.
-
-#### Interpreting color values outside of the domain of [0, 1]
-
-Some storage formats allow specifying color values that are outside of the domain of [0, 1].
-For all color spaces, the transfer function is extended to the domain of all real numbers as follows.
-* For color values greater than 1, the transfer functions are extended by not clamping the function at 1.
-* For color values less than 0, all color space transfer functions are extended by point symmetry around 0.
-In symbols, this means that for a transfer function of ``trFn`` the extended transfer function will be ``exTrFn(val) = sign(val) * trFn(abs(val))``.
-
-For example, the extension of the sRGB transfer function defined in the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification to the full domain of real values would be as follows:
-<pre>
-function sRGBToLinear(val) {
-if (val < -0.04045)
-  return -Math.pow((-val + 0.055) / 1.055, 2.4);
-else if (val <= 0.04045)
-  return val / 12.92;
-else
-  return Math.pow((val + 0.055) / 1.055, 2.4);
-</pre>
 
 #### 2D canvas behavior
 
@@ -146,23 +110,15 @@ else
 
 #### WebGL behavior
 
-* Values stored in WebGL backbuffers are in the canvas' color space.
-* Values written by ``gl_FragColor`` use the primaries of the canvas' color space.
-* The color encoding function is defined as follows:
-* For formats of ``"unorm8"``, ``"unorm16"``, and ``"float16"`` the color encoding function is:
-<pre>
-function encode(val) { return val; }
-</pre>
-* For the format ``"unorm8-srgb"``, the color encoding function is:
-<pre>
-function encode(val) {
-  if (val < 0) return 0.0;
-  else if (val < 0.0031308) return 12.92 * val;
-  else if (val < 1) return (1.055 * Math.pow(val, 0.41666) - 0.055);
-  else return 1.0;
-}
-</pre>
-* For all formats, the values stored in the framebuffer are in the canvas' color space.
+Values stored in WebGL's default back buffer are in the canvas' color space.
+
+Pixel values accessed directly (e.g, through ReadPixels) are in the canvas' color space.
+
+The values written to the default backbuffer through the graphics pipeline are also in the canvas' color space.
+
+Note that if sRGB framebuffer color encoding is enabled for the default backbuffer, then the value written is not the same as the the value assigned to the fragment shader's color output variable.
+In that situation, the linear-to-sRGB transformation function is applied to the assigned value before it is written.
+Consequently, the value assigned to the fragment shader's color output variable can be interpreted as being in a linear version of the canvas' color space.
 
 #### Compositing the canvas element
 
@@ -179,16 +135,9 @@ ImageBitmap objects (unless created with ``colorSpaceConversion="none"``) should
 
 Add the following types to be used by `ImageData`.
 <pre>
-enum ImageDataStorageFormat {
-  "unorm8", // default
-  "unorm16",
-  "float32",
-};
 dictionary ImageDataSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
-  ImageDataStorageFormat storageFormat = "unorm8";
 };
-typedef (Uint8ClampedArray or Uint16Array or Float32Array) ImageDataArray;
 </pre>
 
 Update the `ImageData` interface to the include the following.
@@ -204,18 +153,6 @@ partial interface ImageData {
 The changes to this interface are:
 * The constructors now take an optional `ImageDataSettings` dictionary.
 * The ImageDataSettings attribute may be queried using `getImageDataSettings`.
-* The constructor and attribute that used to be a `Uint8ClampedArray` are now a `ImageDataArray` union, which can specify data in multiple formats.
-
-The type of the ``data`` attribute is determined by the ``storageFormat`` parameter according to the following table.
-
-| ``storageFormat`` Value | ``data`` Type |
-|-|-|
-| ``"unorm8"`` | ``Uint8ClampedArray`` |
-| ``"unorm16"`` | ``Uint16Array`` |
-| ``"float32"`` | ``Float32Array`` |
-
-
-The constructor that takes both an `ImageDataArray` and an `ImageDataSettings` will throw an exception if the type of the `ImageDataArray` is incompatible with the type specified in `ImageDataSettings` (e.g, `ImageDataArray` is a `Float32Array`, but `ImageDataSettings` specifies ``storageFormat="unorm8"``).
 
 When an ``ImageData`` is used in a canvas (e.g, in ``putImageData``), the data is converted from the ``ImageData``'s color space to the color space of the canvas.
 
@@ -227,7 +164,7 @@ partial interface CanvasRenderingContext2D {
 }
 </pre>
 
-The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default values of ``storageFormat="unorm8"`` and ``colorSpace="srgb"`` will be used (these defaults match previous behavior).
+The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default value of ``colorSpace="srgb"`` will be used (this default match previous behavior).
 
 The ``getImageData`` method is responsible for converting the data from the canvas' internal format to the format requested in the ``ImageDataSettings``.
 
@@ -235,12 +172,8 @@ The ``getImageData`` method is responsible for converting the data from the canv
 
 #### Selecting the best color space match for the user agent's display device
 <pre>
-var colorSpace = window.matchMedia("(color-gamut: rec2020)").matches ? "rec2020" :
-                (window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb");
+var colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
 </pre>
-
-### Limitations
-* toDataURL and toBlob may be lossy, depending on the file format, when used on a canvas that has a storage type other than ``"unorm8"``. Possible future improvements could solve or mitigate this issue by adding more file formats or adding options to specify the resource color space.
 
 ### Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
@@ -253,8 +186,6 @@ Authors of games and imaging apps are expected to be enthusiastic adopters.
 * Through what mechanism should HDR metadata be specified? To what extent should tonemapping be specified (e.g, should it be specified that tonemapping not alter SDR values).
 
 * Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
-
-* Should it be "rgba8" and "rgba16f" instead of "unorm8" and "float16"?
 
 * Should context creation throw on an unrecognized, non-undefined creation attribute?
 
