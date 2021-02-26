@@ -1,14 +1,27 @@
 # Color managing canvas contents
 
-## Use Case Description
-* Contents displayed through a canvas element should be in a well-defined color space to minimize differences in appearance across browsers and display devices.
-* Canvases should be able to take advantage of the full color gamut and dynamic range of the display device.
-* Contents displayed through a canvas element should be color managed in order to minimize differences in appearance across browsers and display devices. Improving color fidelity matters for artistic (e.g, photo and paint apps) and for e-commerce (e.g, product presentation) use cases.
+## Background
 
-### Current Limitations
-* The color space of canvases is undefined in the current specification, although is de facto sRGB.
-* The bit-depth of canvases is likewise undefined, although is de facto 8 bits per component.
-* Images retrieved from a canvas are in an undefined color space and no color space information is encoded by ``toDataURL`` or ``toBlob``.
+### Current Limitations and Goals
+
+Wide color gamut web content, in the form of images and videos, is ubiquitous today.
+Wide color gamut display devices are also ubiquitous.
+
+The color space of content displayed in an ``HTMLCanvasElement`` via 2D Canvas, WebGL, or WebGPU, is not explicitly defined.
+The de facto behavior of most browers is to limit this content to the sRGB color space, with 8 bits per color.
+This presents a significant limitation compared to the capabilities of display devices and the demands of content creators.
+
+The goals of this proposal are to:
+* Ensure that canvas content's color is well-defined, to minimize differences in appearance across browsers and display devices
+* Allow 2D Canvas, WebGL, and WebGPU to take advantage of a wider color gamut.
+
+### Use Cases
+
+Examples of web applications that will benefit from a well-defined color space and wide color gamut support include:
+* Photo viewing and manipulation applications.
+* Visual design applications.
+* Commerce applications, for product presentation.
+* Gaming applications.
 
 ### Requests for this Feature
 
@@ -17,15 +30,22 @@
 * Engineers from the Google Photos, Maps and Sheets teams have expressed a desire for canvases to be color managed. Particularly for the use case of resizing an image, using a canvas, prior to uploading it to the server, to save bandwidth. The problem is that the images retrieved from a canvas are in an undefined color space and no color space information is encoded by toDataURL or toBlob.
 
 ### Related Specifications
+
 * The [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/#color-gamut) specification defines the ``color-gamut`` media query to determine the capabilities of the current display device.
 * The [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification defines several color spaces that will be used in this specification. At time of writing this specification is partially implemented on some browsers.
 
 ## Proposed Solution
 
-* Clearly define the default color space of canvases to be ``srgb``, and the default encoding to be 8 bits per pixel.
-* Add canvas context creation attributes to specify the color space, storage format, and color encoding function of a canvas.
-* Clarify behavior for drawing into canvases, compositing canvases, and exporting canvas contents.
-* Add mechanisms to specify the color space and encoding of ``ImageData`` objects.
+This proposal aims to accomplish the above stated goals by:
+* Introducing a set of color spaces that are available for use.
+* Adding an API whereby 2D Canvas, WebGL, WebGPU, and ImageData may specify one of those color spaces.
+
+This proposal will also clarify:
+* The default color space for 2D Canvas, WebGL, WebGPU, and ImageData.
+* The compositing behavior for 2D Canvas.
+* The behavior when exporting elements using ``toDataURL`` and ``toBlob``.
+
+The remainder of this section discusses this functionality and behavior in detail.
 
 ### Processing Model
 
