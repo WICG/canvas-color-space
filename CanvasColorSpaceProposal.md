@@ -55,7 +55,7 @@ This proposal will also clarify:
 
 The remainder of this section discusses this functionality and behavior in detail.
 
-### Processing Model
+### Color Spaces
 
 IDL:
 <pre>
@@ -72,16 +72,6 @@ interface CanvasColorSpace {
   const CanvasColorSpaceEnum srgb = "srgb";
   const CanvasColorSpaceEnum displayP3 = "display-p3";
 };
-
-// Feature activation:
-
-partial dictionary CanvasRenderingContext2DSettings {
-  CanvasColorSpaceEnum colorSpace = "srgb";
-};
-
-partial dictionary WebGLContextAttributes {
-  CanvasColorSpaceEnum colorSpace = "srgb";
-};
 </pre>
 
 Example:
@@ -89,15 +79,21 @@ Example:
 canvas.getContext('2d', { colorSpace: "display-p3"} );,
 </pre>
 
-#### The ``colorSpace`` canvas creation attribute
-
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
 * Color spaces match their respective counterparts as defined in the [predefined color spaces](https://www.w3.org/TR/css-color-4/#predefined) section of the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification.
-* When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
 * Implementations should not limit the set of exposed color spaces based on the capabilities of the display. The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
 [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/) specification.
 
-#### 2D canvas behavior
+### 2D Canvas
+
+IDL:
+<pre>
+// Feature activation:
+
+partial dictionary CanvasRenderingContext2DSettings {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+};
+</pre>
 
 * All input colors (e.g, ``fillStyle`` and ``strokeStyle``) follow the same interpretation as CSS color literals, regardless of the canvas color space.
 * Images drawn to a canvas are converted from their native color space to the backing storage color space of the canvas.
@@ -105,10 +101,18 @@ The ``colorSpace`` attribute specifies the color space for the backing storage o
 * All blending operations are performed in the canvas' backing storage color space.
   * The midpoint between the backbuffer's colors ``(1,0,0)`` and ``(0,1,0)`` will be ``(0.5,0.5,0)``, even though this is neither the physical nor perceptual midpoint between the two colors.
   * This means that the same content, rendered with two different canvas backing stores, may be slightly different.
-* The functions ``toDataURL`` and ``toBlob`` should produce resources that best match the fidelity of the underlying canvas.
-  * Subject to the limitations of the implementation and the requested format.
+* When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
 
-#### WebGL behavior
+#### WebGL
+
+IDL:
+<pre>
+// Feature activation:
+
+partial dictionary WebGLContextAttributes {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+};
+</pre>
 
 Values stored in WebGL's default back buffer are in the canvas' color space.
 
@@ -120,10 +124,12 @@ Note that if sRGB framebuffer color encoding is enabled for the default backbuff
 In that situation, the linear-to-sRGB transformation function is applied to the assigned value before it is written.
 Consequently, the value assigned to the fragment shader's color output variable can be interpreted as being in a linear version of the canvas' color space.
 
-#### WebGPU behavior
+### WebGPU
 
 WebGPU's context configuration is specified dynamically using the `GPUCanvasContext` method `configureSwapChain`, which takes a `GPUSwapChainDescriptor` argument.
 Add an additional entry to `GPUSwapChainDescriptor` for the color space of the swap chain.
+
+IDL:
 <pre>
 partial dictionary GPUSwapChainDescriptor {
   CanvasColorSpaceEnum colorSpace = "srgb";
@@ -134,20 +140,25 @@ All values read from and written to the swap chain are in the canvas' color spac
 
 As described in the WebGL section above, if the ``GPUSwapChainDescriptor``'s ``format`` is ``"rgba8unorm-srgb"`` or ``"bgra8unorm-srgb"``, then the value assigned to the color output of the fragment shader can be interpreted as being in a linear version of the canvas' color space, because it will have the linear-to-sRGB transformation applied to it before it is written to the swap chain.
 
-#### Compositing the canvas element
+### HTMLCanvasElement
 
+The functions ``toDataURL`` and ``toBlob`` should produce resources that best match the fidelity of the underlying canvas, subject to the limitations of the implementation and the requested format.
+
+#### Compositing of the HTMLCanvasElement
 Canvas contents are composited in accordance with the canvas element's style (e.g. CSS compositing and blending rules). The necessary compositing operations must be performed in an intermediate colorspace, the compositing space, that is implementation specific. The compositing space must have sufficient precision and a sufficiently wide gamut to guarantee no undue loss of precision or gamut clipping in bringing the canvas's contents to the display.
 
 The chromiumance of color values outside of [0, 1] is not to be clamped, and extended values may be used to display colors outside of the gamut defined by the canvas' color space's primaries.
 This is in contrast with luminance, which is to be clamped to the maximum standard dynamic range luminance, unless high dynamic range is explicitly enabled for the canvas element.
 
-#### ImageBitmap
+### ImageBitmap
 
 ImageBitmap objects (unless created with ``colorSpaceConversion="none"``) should keep track of their internal color space, and should store their contents at highest fidelity possible, subject to implementation limitations.
 
-#### ImageData
+### ImageData
 
 Add the following types to be used by `ImageData`.
+
+IDL:
 <pre>
 dictionary ImageDataSettings {
   CanvasColorSpaceEnum colorSpace = "srgb";
@@ -155,6 +166,8 @@ dictionary ImageDataSettings {
 </pre>
 
 Update the `ImageData` interface to the include the following.
+
+IDL:
 <pre>
 partial interface ImageData {
   constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings);
@@ -182,14 +195,14 @@ The changes to this interface are the addion of the optional ``ImageDataSettings
 
 The ``getImageData`` method is responsible for converting the data from the canvas' internal format to the format requested in the ``ImageDataSettings``.
 
-### Examples
+## Examples
 
-#### Selecting the best color space match for the user agent's display device
+### Selecting the best color space match for the user agent's display device
 <pre>
 var colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
 </pre>
 
-### Adoption
+## Adoption
 Lack of color management and color interoperability is a longstanding complaint about the canvas API.
 Authors of games and imaging apps are expected to be enthusiastic adopters.
 
