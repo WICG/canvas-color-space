@@ -107,22 +107,20 @@ partial dictionary CanvasRenderingContext2DSettings {
 
 IDL:
 <pre>
-// Feature activation:
-
-partial dictionary WebGLContextAttributes {
-  CanvasColorSpaceEnum colorSpace = "srgb";
+partial interface WebGLRenderingContextBase {
+  attribute CanvasColorSpaceEnum colorSpace = "srgb";
 };
 </pre>
 
-Values stored in WebGL's default back buffer are in the canvas' color space.
+Values stored in WebGL's default back buffer are to be interpreted as being in the color space specified by the ``colorSpace`` attribute.
+Changing the ``colorSpace`` attribute is not destructive to the contents of the default back buffer.
 
-Pixel values accessed directly (e.g, through ReadPixels) are in the canvas' color space.
+The value of ``colorSpace`` is latched for compositing at the same moment that the contents of the default back buffer are latched.
+It is supported to have multiple frames of different color spaces in flight simultaneously.
 
-The values written to the default backbuffer through the graphics pipeline are also in the canvas' color space.
-
-Note that if sRGB framebuffer color encoding is enabled for the default backbuffer, then the value written is not the same as the the value assigned to the fragment shader's color output variable.
-In that situation, the linear-to-sRGB transformation function is applied to the assigned value before it is written.
-Consequently, the value assigned to the fragment shader's color output variable can be interpreted as being in a linear version of the canvas' color space.
+The value of the ``colorSpace`` attribute may affect the behavior of paths that use the ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` pixel storage attribute.
+In implementations in which a ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` of ``BROWSER_DEFAULT_WEBGL`` causes a color conversion of input sources to sRGB, it is recommended that this behavior be changed to a color conversion of input sources to the color space specified by ``colorSpace``.
+Note that, while convenient, this behavior is likely less efficient than specifying color conversion in ``ImageBitmapOptions``, where the color conversion may be done asynchronously and simultaneously with image decode.
 
 ### WebGPU
 
@@ -152,7 +150,15 @@ This is in contrast with luminance, which is to be clamped to the maximum standa
 
 ### ImageBitmap
 
-ImageBitmap objects (unless created with ``colorSpaceConversion="none"``) should keep track of their internal color space, and should store their contents at highest fidelity possible, subject to implementation limitations.
+IDL:
+<pre>
+partial dictionary ImageBitmapOptions {
+  CanvasColorSpaceEnum colorSpace = "srgb";
+}
+</pre>
+
+When creating an ``ImageBitmap``, if the ``colorSpaceConversion`` entry of the specified ``ImageBitmapOptions`` is not ``"none"``, then the internal color space for the resulting ``ImageBitmap`` should be the color space that is specified by the ``colorSpace`` entry of the ``ImageBitmapOptions``.
+If that ``ImageBitmap`` is then used as input to populate a WebGL or WebGPU texture, then the pixel values written to the texture should represent the ``ImageBitmap``'s source contents in the specified color space.
 
 ### ImageData
 
