@@ -301,7 +301,7 @@ Also note that in this example the color conversion happens synchronously at the
   gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,
                  gl.BROWSER_DEFAULT_WEBGL);
   gl.colorSpace = 'display-p3';
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, image.width, image.height, 0,
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, image.width, image.height, 0,
                 gl.RGBA, gl.UNSIGNED_BYTE, image);
 ```
 
@@ -317,13 +317,12 @@ In this example, the ``ImageBitmap`` API is used to allow the color conversion o
   fetch(myImageUrl).then(function(response) {
     return response.blob();
   }).then(function(blob) {
-    return createImageBitmap(blob, 0, 0, 1000, 1000,
-                             {colorSpace:'display-p3'});
+    return createImageBitmap(blob, {colorSpace:'display-p3'});
   }).then(function(bitmap) {
     const texInP3 = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texInP3);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, bitmap.width, bitmap.height, 0,
-                  gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, bitmap.width,
+                  bitmap.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
     
   });
 ```
