@@ -203,10 +203,10 @@ This example selects a wide color gamut canvas only if the underlying display ha
 
 ```html
   // Note that the gamut is named p3, but the color space is 'display-p3'.
-  var matchingColorSpace = window.matchMedia(
+  let matchingColorSpace = window.matchMedia(
       '(color-gamut: p3)').matches ? 'display-p3' : 'srgb';
-  var canvas = document.getElementById('Canvas');
-  var context = canvas.getContext('2d', {colorSpace:matchingColorSpace});
+  let canvas = document.getElementById('MyCanvas');
+  let context = canvas.getContext('2d', {colorSpace:matchingColorSpace});
 ```
 
 ### Drawing wide color gamut content to a 2D Canvas
@@ -215,19 +215,19 @@ This example shows drawing a wide color gamut image to an sRGB and a Display-P3 
 
 ```html
   // Let |myWCGImage| be a loaded wide color gamut Image.
-  var myWCGImage;
+  let myWCGImage;
 
   // Let |defaultCanvas| be a default (sRGB) canvas. This code will draw the
   // specified image, but will clip it to the sRGB color gamut.
-  var defaultCanvas = document.getElementById('DefaultCanvas');
-  var defaultCtx = defaultCanvas.getContext('2d');
+  let defaultCanvas = document.getElementById('DefaultCanvas');
+  let defaultCtx = defaultCanvas.getContext('2d');
   defaultCtx.drawImage(myWCGImage, 0, 0, image.width, image.height)
 
   // Let |wcgCanvas| be a Display-P3 canvas. This code will draw the specified
   // image, which will not be clipped to the sRGB color gamut (it will be
   // restricted only to the P3 color gamut).
-  var wcgCanvas = document.getElementById('DefaultCanvas');
-  var wcgCtx = wcgCanvas.getContext('2d', {colorSpace:'display-p3'});
+  let wcgCanvas = document.getElementById('WcgCanvas');
+  let wcgCtx = wcgCanvas.getContext('2d', {colorSpace:'display-p3'});
   wcgCtx.drawImage(myWCGImage, 0, 0, image.width, image.height)
 ```
 
@@ -236,18 +236,18 @@ This example shows drawing a wide color gamut image to an sRGB and a Display-P3 
 This example shows use of the new ``ImageData`` color management APIs.
 
 ```html
-  var canvas = document.getElementById('Canvas');
-  var context = defaultCanvas.getContext('2d', {colorSpace:'display-p3'});
+  let canvas = document.getElementById('MyCanvas');
+  let context = canvas.getContext('2d', {colorSpace:'display-p3'});
 
   // Creating a ImageData without specifying ImageDataSettings will create an
   // sRGB ImageData. This will draw the color sRGB-red to the canvas.
-  var srgbImageData = new ImageData(1, 1);
+  let srgbImageData = new ImageData(1, 1);
   srgbImageData.data[0] = srgbImageData.data[3] = 255;
   srgbImageData.data[1] = srgbImageData.data[2] = 0;
   context.putImageData(srgbImageData, 0, 0);
 
   // This will draw P3-red to the canvas.
-  var p3ImageData = new ImageData(1, 1, {colorSpace:'display-p3'});
+  let p3ImageData = new ImageData(1, 1, {colorSpace:'display-p3'});
   p3ImageData.data[0] = p3ImageData.data[3] = 255;
   p3ImageData.data[1] = p3ImageData.data[2] = 0;
   context.putImageData(p3ImageData, 0, 0);
@@ -260,13 +260,13 @@ This example shows use of the new ``ImageData`` color management APIs.
   // Reading back an ImageData without specifying a color space will retrieve
   // pixel values converted to sRGB. This will clamp color values to sRGB, and
   // so |readSrgbImageData.data| will be [255,0,0,255, 255,0,0,255];
-  var readSrgbImageData = context.getImageData(0, 0, 2, 1);
+  let readSrgbImageData = context.getImageData(0, 0, 2, 1);
   console.log(readSrgbImageData.data);
 
   // Reading back an ImageData specifying a color space will retrieve the pixel
   // values converted to that color space. |readP3ImageData.data| will be
   // [234,51,35,255, 255,0,0,255].
-  var readP3ImageData = context.getImageData(0, 0, 2, 1,
+  let readP3ImageData = context.getImageData(0, 0, 2, 1,
                                              {colorSpace:'display-p3'});
   console.log(readP3ImageData.data);
 ```
@@ -276,8 +276,8 @@ This example shows use of the new ``ImageData`` color management APIs.
 This example shows a WebGL application that clears the screen to Display P3 red.
 
 ```html
-  var canvas = document.getElementById('Canvas');
-  var gl = defaultCanvas.getContext('webgl2');
+  let canvas = document.getElementById('MyCanvas');
+  let gl = canvas.getContext('webgl2');
   gl.colorSpace = 'display-p3';
   gl.clearColor(1.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -291,12 +291,12 @@ Also note that in this example the color conversion happens synchronously at the
 
 ```html
   // Let |myImage| be an image that has some (unknown) color profile.
-  var myImage;
-  var canvas = document.getElementById('Canvas');
-  var gl = defaultCanvas.getContext('webgl2');
+  let myImage;
+  let canvas = document.getElementById('MyCanvas');
+  let gl = canvas.getContext('webgl2');
 
   // Let texInP3 be the image converted to Display-P3.
-  var texInP3 = gl.createTexture();
+  let texInP3 = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texInP3);
   gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,
                  gl.BROWSER_DEFAULT_WEBGL);
@@ -310,9 +310,9 @@ In this example, the ``ImageBitmap`` API is used to allow the color conversion o
 ```html
   // Let |myImageUrl| be the URL for an image that has some (unknown) color
   // profile.
-  var myImageUrl;
-  var canvas = document.getElementById('Canvas');
-  var gl = defaultCanvas.getContext('webgl2');
+  let myImageUrl;
+  let canvas = document.getElementById('MyCanvas');
+  let gl = canvas.getContext('webgl2');
 
   fetch(myImageUrl).then(function(response) {
     return response.blob();
