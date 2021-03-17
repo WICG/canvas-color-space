@@ -103,7 +103,7 @@ partial dictionary CanvasRenderingContext2DSettings {
   * This means that the same content, rendered with two different canvas backing stores, may be slightly different.
 * When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
 
-#### WebGL
+### WebGL
 
 IDL:
 <pre>
@@ -118,8 +118,9 @@ Changing the ``colorSpace`` attribute is not destructive to the contents of the 
 The value of ``colorSpace`` is latched for compositing at the same moment that the contents of the default back buffer are latched.
 It is supported to have multiple frames of different color spaces in flight simultaneously.
 
-The value of the ``colorSpace`` attribute may affect the behavior of paths that use the ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` pixel storage attribute.
-In implementations in which a ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` of ``BROWSER_DEFAULT_WEBGL`` causes a color conversion of input sources to sRGB, it is recommended that this behavior be changed to a color conversion of input sources to the color space specified by ``colorSpace``.
+The ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` pixel storage parameter indicates the color space conversion that should be applied to ``HTMLImageElement`` sources passed to ``texImage2D`` and ``texSubImage2D``.
+In implementations in which a ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` of ``BROWSER_DEFAULT_WEBGL`` causes a conversion to sRGB color space, it is recommended that this behavior be changed to be a conversion to the color space indicated by ``colorSpace``.
+
 Note that, while convenient, this behavior is likely less efficient than specifying color conversion in ``ImageBitmapOptions``, where the color conversion may be done asynchronously and simultaneously with image decode.
 
 ### WebGPU
