@@ -61,16 +61,16 @@ IDL:
 <pre>
 // Feature enums:
 
-enum CanvasColorSpaceEnum {
+enum PredefinedColorSpaceEnum {
   "srgb", // default
   "display-p3",
 };
 
 // Feature detection:
 
-interface CanvasColorSpace {
-  const CanvasColorSpaceEnum srgb = "srgb";
-  const CanvasColorSpaceEnum displayP3 = "display-p3";
+interface PredefinedColorSpace {
+  const PredefinedColorSpaceEnum srgb = "srgb";
+  const PredefinedColorSpaceEnum displayP3 = "display-p3";
 };
 </pre>
 
@@ -91,7 +91,7 @@ IDL:
 // Feature activation:
 
 partial dictionary CanvasRenderingContext2DSettings {
-  CanvasColorSpaceEnum colorSpace = "srgb";
+  PredefinedColorSpaceEnum colorSpace = "srgb";
 };
 </pre>
 
@@ -110,7 +110,7 @@ IDL:
 // Feature activation:
 
 partial dictionary WebGLContextAttributes {
-  CanvasColorSpaceEnum colorSpace = "srgb";
+  PredefinedColorSpaceEnum colorSpace = "srgb";
 };
 </pre>
 
@@ -132,7 +132,7 @@ Add an additional entry to `GPUSwapChainDescriptor` for the color space of the s
 IDL:
 <pre>
 partial dictionary GPUSwapChainDescriptor {
-  CanvasColorSpaceEnum colorSpace = "srgb";
+  PredefinedColorSpaceEnum colorSpace = "srgb";
 };
 </pre>
 
@@ -161,7 +161,7 @@ Add the following types to be used by `ImageData`.
 IDL:
 <pre>
 dictionary ImageDataSettings {
-  CanvasColorSpaceEnum colorSpace = "srgb";
+  PredefinedColorSpaceEnum colorSpace = "srgb";
 };
 </pre>
 
