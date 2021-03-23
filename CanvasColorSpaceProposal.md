@@ -115,9 +115,6 @@ partial interface WebGLRenderingContextBase {
 Values stored in WebGL's default back buffer are to be interpreted as being in the color space specified by the ``colorSpace`` attribute.
 Changing the ``colorSpace`` attribute is not destructive to the contents of the default back buffer.
 
-The value of ``colorSpace`` is latched for compositing at the same moment that the contents of the default back buffer are latched.
-It is supported to have multiple frames of different color spaces in flight simultaneously.
-
 The ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` pixel storage parameter indicates the color space conversion that should be applied to ``HTMLImageElement`` sources passed to ``texImage2D`` and ``texSubImage2D``.
 In implementations in which a ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` of ``BROWSER_DEFAULT_WEBGL`` causes a conversion to sRGB color space, it is recommended that this behavior be changed to be a conversion to the color space indicated by ``colorSpace``.
 
@@ -158,8 +155,8 @@ partial dictionary ImageBitmapOptions {
 }
 </pre>
 
-When creating an ``ImageBitmap``, if the ``colorSpaceConversion`` entry of the specified ``ImageBitmapOptions`` is not ``"none"``, then the internal color space for the resulting ``ImageBitmap`` should be the color space that is specified by the ``colorSpace`` entry of the ``ImageBitmapOptions``.
-If that ``ImageBitmap`` is then used as input to populate a WebGL or WebGPU texture, then the pixel values written to the texture should represent the ``ImageBitmap``'s source contents in the specified color space.
+When creating an ``ImageBitmap``, if the ``colorSpaceConversion`` entry of the specified ``ImageBitmapOptions`` is not ``"none"``, then the internal color space for the resulting ``ImageBitmap`` will be the color space that is specified by the ``colorSpace`` entry of the ``ImageBitmapOptions``.
+If that ``ImageBitmap`` is then used as input to populate a WebGL or WebGPU texture, then the pixel values written to the texture will represent the ``ImageBitmap``'s source contents in the specified color space.
 
 ### ImageData
 
