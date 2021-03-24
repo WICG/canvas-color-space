@@ -81,7 +81,8 @@ canvas.getContext('2d', { colorSpace: "display-p3"} );,
 
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
 * Color spaces match their respective counterparts as defined in the [predefined color spaces](https://www.w3.org/TR/css-color-4/#predefined) section of the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4) specification.
-* Implementations should not limit the set of exposed color spaces based on the capabilities of the display. The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
+* Implementations should not limit the set of exposed color spaces based on the capabilities of the display.
+* The color space that best represents the capabilities of the canvas' current display may be determined using the [color gamut media queries](https://www.w3.org/TR/mediaqueries-5/#color-gamut) functionality found in the 
 [CSS Media Queries Level 5](https://www.w3.org/TR/mediaqueries-5/) specification.
 
 ### 2D Canvas
@@ -95,13 +96,16 @@ partial dictionary CanvasRenderingContext2DSettings {
 };
 </pre>
 
-* All input colors (e.g, ``fillStyle`` and ``strokeStyle``) follow the same interpretation as CSS color literals, regardless of the canvas color space.
-* Images drawn to a canvas are converted from their native color space to the backing storage color space of the canvas.
+2D Canvases are color managed.
+* All inputs that are drawn to a canvas have specific color space (there are no inputs to a canvas that do not have a well-defined color space).
+  * Input colors (e.g, ``fillStyle`` and ``strokeStyle``) follow the same interpretation as CSS color literals, regardless of the canvas color space.
   * Images with no color profile, when drawn to the canvas, are assumed to be in the sRGB color space.
-* All blending operations are performed in the canvas' backing storage color space.
+* All inputs that are drawn to a canvas are converted from their color space to the canvas' color space before being drawn to the canvas.
+* All blending and gradient interpolation operations are performed in the canvas' color space.
   * The midpoint between the backbuffer's colors ``(1,0,0)`` and ``(0,1,0)`` will be ``(0.5,0.5,0)``, even though this is neither the physical nor perceptual midpoint between the two colors.
   * This means that the same content, rendered with two different canvas backing stores, may be slightly different.
-* When an unsupported color space is requested, the color space shall fall back to ``"srgb"``.
+
+When an unsupported color space is requested, the color space will fall back to ``"srgb"``.
 
 #### WebGL
 
@@ -202,21 +206,91 @@ The ``getImageData`` method is responsible for converting the data from the canv
 var colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
 </pre>
 
-## Adoption
-Lack of color management and color interoperability is a longstanding complaint about the canvas API.
-Authors of games and imaging apps are expected to be enthusiastic adopters.
+## Resolved Issues
 
-## Unresolved Issues
+### Additional color spaces, high bit depth, and high dynamic range
 
-* Should we support custom color spaces based on ICC profiles? Would offer ultimate flexibility. Would be hard to make implementations as efficient as built-in color spaces, in particular for implement linearPixelMath for profiles that have arbitrary transfer curves.
+Should we support color spaces besides `'srgb'` and `'display-p3'`?
 
-* Through what mechanism should HDR metadata be specified? To what extent should tonemapping be specified (e.g, should it be specified that tonemapping not alter SDR values).
+In another proposal.
+This proposal limits its scope to the capabilites of 8-bit buffers.
+Additional color spaces such as ``'rec2020'`` or any HDR color spaces will need higher bit depth support.
+We defer supporting color spaces that require more than 8 bit of precision to a separate proposal that also covers high bit depth and high dyanmic range.
 
-* Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
+### Custom color profile support
 
-* Should context creation throw on an unrecognized, non-undefined creation attribute?
+Should we support custom color spaces based on ICC profiles?
 
-* The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the name "p3", while the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#predefined) uses the name "display-p3". This divergence could be confusing.
+Not now.
+Rendering to an arbitrary ICC profile adds a significant level of complexity to the implementation.
+This proposal does not add this capability, but does not close the door to its addition in a future proposal.
+The ``PredefinedColorSpaceEnum`` could be changed to a ``DOMString`` that could refer any CSS color profile, including CSS Color Module Level 4's [custom profiles](https://www.w3.org/TR/css-color-4/#at-profile).
+
+### Separating chromaticities and transfer functions
+
+Should there be API-level support for mixing chromaticities and transfer functions, including use of no-op transfer functions?
+
+No.
+The color space names are selected to coincide with the CSS Color Module Level 4 [predefined color space names](https://www.w3.org/TR/css-color-4/#predefined).
+Any new syntax for specifying color spaces should be made in that context.
+
+### Handling unrecognized color spaces
+
+Should context creation throw on an unrecognized, non-undefined creation attribute?
+
+No.
+Consider the following example.
+An application calls ``canvas.getContext('2d', {colorSpace:'myNonExistentColorSpace'})``.
+
+* If run on a browser that does not support canvas color spaces the ``colorSpace`` key is ignored, and an sRGB canvas is created.
+* If context creation were to throw on an unrecognized attribute, then this code would fail only on browsers that support canvas color spaces.
+
+Succeeding on a browser that does not support the feature and failing on a browser that does support the feature is an undesirable behavior.
+
+### Naming of color gamuts
+
+The [Media Query APIs](https://www.w3.org/TR/mediaqueries-4/) use the name "p3", while the [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#predefined) uses the name "display-p3". Could this divergence be confusing?
+
+Yes and no.
+Indeed it can be confusing that a gamut name and color space name are similar but not the same.
+That said, there is a concept of the P3 primaries outside of the Display P3 color space (e.g, the DCI P3 color space), so it's not as though this is in error.
+
+### Alternative schemes for specifying ``CanvasRenderingContext2D`` color space
+
+This proposal adds a ``colorSpace`` argument to ``CanvasRenderingContext2DSettings``.
+The color space is then an immutable property of the ``CanvasRenderingContext2D``.
+Should it be put elsewhere, say, as a mutable attribute on ``CanvasRenderingContext2D``?
+
+No, but reviewers of this proposal should consider the options.
+The alternative would look as follows.
+
+```html
+  // Proposal mode
+  context = canvas.getContext('2d', {colorSpace:'display-p3'});,
+
+  // Alternative mode
+  context = canvas.getContext('2d');,
+  context.colorSpace = 'display-p3';
+```
+
+The benefit of the alternative mode is that it side-steps the aforementioned issue related to specifying invalid color spaces.
+The disadvantage is that it breaks the color management mode of 2D canvases, and adds significant API and implementation complexity.
+
+This behavior of specifying a color space at creation time also applies to ``ImageData``.
+In the case of ``ImageData``, a color space must be specified at creation time (e.g, in ``getImageData``).
+
+Note that WebGL puts the ``colorSpace`` on the ``WebGLRenderingContextBase`` interface.
+Changing the WebGL color space just causes the pixels to be reinterpreted, but that is suitable because WebGL is not color managed, and raw pixel access is the norm.
+
+In contrast, a 2D canvas is color managed and does not allow raw pixel access.
+What should happen to the canvas if its color space changes?
+There are three options:
+
+* Destroy the context's contents. This is what happens when a ``HTMLCanvasElement`` is resized.
+* Convert the existing pixels to the new color space.
+* Reinterpret the existing pixels as though they are in the new color space. This is very much against the spirit of the 2D canvas being color managed, and likely leaks implementation-specific details to the web application.
+
+The most reasonable of these options is to destroy the context's contents.
 
 ## Proposal History
 
