@@ -19,7 +19,8 @@ Non-goals of this proposal are:
 * Ultra-wide color gamut color space support (e.g, Rec2020) and high dynamic range support.
   * This topic is deferred to a subsequent proposal.
 * High bit depth 2D Canvas and ImageData support.
-  * For 2D Canvas and ImageData, this topic will be addressed by UWCG and HDR proposal, because such color spaces require more than the default of 8 bits per pixel.
+  * For 2D Canvas and ImageData, this topic will be addressed by [UWCG and HDR proposal](#additional-color-spaces-high-bit-depth-and-high-dynamic-range),
+  because such color spaces require more than the default of 8 bits per pixel.
   * For WebGL, this topic is addressed in a separate pixel format proposal.
   * For WebGPU, high bit depth pixel formats may be specified in ``GPUSwapChainDescriptor``.
 
@@ -220,6 +221,8 @@ In another proposal.
 This proposal limits its scope to the capabilites of 8-bit buffers.
 Additional color spaces such as ``'rec2020'`` or any HDR color spaces will need higher bit depth support.
 We defer supporting color spaces that require more than 8 bit of precision to a separate proposal that also covers high bit depth and high dyanmic range.
+
+_NOTE: The [Color-on-the-web Community Group](https://www.w3.org/community/colorweb/) is working on [adding support for HDR imagery to Canvas](https://github.com/w3c/ColorWeb-CG)._
 
 ### Custom color profile support
 
