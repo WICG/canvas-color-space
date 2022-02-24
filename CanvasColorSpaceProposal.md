@@ -77,7 +77,7 @@ interface PredefinedColorSpace {
 
 Example:
 <pre>
-canvas.getContext('2d', { colorSpace: "display-p3"} );,
+canvas.getContext('2d', { colorSpace: "display-p3" } );
 </pre>
 
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
@@ -208,7 +208,7 @@ The ``getImageData`` method is responsible for converting the data from the canv
 
 ### Selecting the best color space match for the user agent's display device
 <pre>
-var colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
+const colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
 </pre>
 
 ## Resolved Issues
@@ -273,10 +273,10 @@ The alternative would look as follows.
 
 ```html
   // Proposal mode
-  context = canvas.getContext('2d', {colorSpace:'display-p3'});,
+  const context = canvas.getContext('2d', {colorSpace:'display-p3'});
 
   // Alternative mode
-  context = canvas.getContext('2d');,
+  const context = canvas.getContext('2d');
   context.colorSpace = 'display-p3';
 ```
 
