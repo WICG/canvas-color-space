@@ -77,7 +77,7 @@ interface PredefinedColorSpace {
 
 Example:
 <pre>
-canvas.getContext('2d', { colorSpace: "display-p3" } );
+canvas.getContext('2d', { colorSpace: 'display-p3' } );
 </pre>
 
 The ``colorSpace`` attribute specifies the color space for the backing storage of the canvas.
@@ -208,7 +208,7 @@ The ``getImageData`` method is responsible for converting the data from the canv
 
 ### Selecting the best color space match for the user agent's display device
 <pre>
-const colorSpace = window.matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
+const colorSpace = window.matchMedia('(color-gamut: p3)').matches ? 'display-p3' : 'srgb';
 </pre>
 
 ## Resolved Issues
@@ -247,7 +247,7 @@ Should context creation throw on an unrecognized, non-undefined creation attribu
 
 No.
 Consider the following example.
-An application calls ``canvas.getContext('2d', {colorSpace:'myNonExistentColorSpace'})``.
+An application calls ``canvas.getContext('2d', { colorSpace:'myNonExistentColorSpace' })``.
 
 * If run on a browser that does not support canvas color spaces the ``colorSpace`` key is ignored, and an sRGB canvas is created.
 * If context creation were to throw on an unrecognized attribute, then this code would fail only on browsers that support canvas color spaces.
@@ -273,7 +273,7 @@ The alternative would look as follows.
 
 ```html
   // Proposal mode
-  const context = canvas.getContext('2d', {colorSpace:'display-p3'});
+  const context = canvas.getContext('2d', { colorSpace:'display-p3' });
 
   // Alternative mode
   const context = canvas.getContext('2d');
