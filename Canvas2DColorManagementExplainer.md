@@ -1,4 +1,4 @@
-# Canvas 2D Color Management Explainer
+# Canvas 2D Color Management Explainer (Archived)
 
 This explainer summarizes color management features added to 2D canvases.
 

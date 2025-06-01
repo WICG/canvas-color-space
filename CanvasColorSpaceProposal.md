@@ -1,4 +1,4 @@
-# Color managing canvas contents
+# Color managing canvas contents (Archived)
 
 ## Background
 
