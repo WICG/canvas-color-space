@@ -62,16 +62,9 @@ IDL:
 <pre>
 // Feature enums:
 
-enum PredefinedColorSpaceEnum {
+enum PredefinedColorSpace {
   "srgb", // default
   "display-p3",
-};
-
-// Feature detection:
-
-interface PredefinedColorSpace {
-  const PredefinedColorSpaceEnum srgb = "srgb";
-  const PredefinedColorSpaceEnum displayP3 = "display-p3";
 };
 </pre>
 
@@ -110,6 +103,8 @@ When an unsupported color space is requested, the color space will fall back to 
 
 ### WebGL
 
+_NOTE: This section is not finalized and is being fleshed out and reviewed in Khronos_
+
 IDL:
 <pre>
 partial interface WebGLRenderingContextBase {
@@ -125,7 +120,11 @@ In implementations in which a ``UNPACK_COLORSPACE_CONVERSION_WEBGL`` of ``BROWSE
 
 Note that, while convenient, this behavior is likely less efficient than specifying color conversion in ``ImageBitmapOptions``, where the color conversion may be done asynchronously and simultaneously with image decode.
 
+An mechanism for using ``ImageBitmapOptions`` to specify color space conversion will be added in the context of WebGL color space support, to support asynchronous and decode-time color space conversion for texture data upload.
+
 ### WebGPU
+
+_NOTE: This section is not finalized and is being fleshed out and reviewed in Khronos_
 
 WebGPU's context configuration is specified dynamically using the `GPUCanvasContext` method `configureSwapChain`, which takes a `GPUSwapChainDescriptor` argument.
 Add an additional entry to `GPUSwapChainDescriptor` for the color space of the swap chain.
@@ -151,18 +150,6 @@ Canvas contents are composited in accordance with the canvas element's style (e.
 The chromiumance of color values outside of [0, 1] is not to be clamped, and extended values may be used to display colors outside of the gamut defined by the canvas' color space's primaries.
 This is in contrast with luminance, which is to be clamped to the maximum standard dynamic range luminance, unless high dynamic range is explicitly enabled for the canvas element.
 
-### ImageBitmap
-
-IDL:
-<pre>
-partial dictionary ImageBitmapOptions {
-  CanvasColorSpaceEnum colorSpace = "srgb";
-}
-</pre>
-
-When creating an ``ImageBitmap``, if the ``colorSpaceConversion`` entry of the specified ``ImageBitmapOptions`` is not ``"none"``, then the internal color space for the resulting ``ImageBitmap`` will be the color space that is specified by the ``colorSpace`` entry of the ``ImageBitmapOptions``.
-If that ``ImageBitmap`` is then used as input to populate a WebGL or WebGPU texture, then the pixel values written to the texture will represent the ``ImageBitmap``'s source contents in the specified color space.
-
 ### ImageData
 
 Add the following types to be used by `ImageData`.
@@ -170,7 +157,7 @@ Add the following types to be used by `ImageData`.
 IDL:
 <pre>
 dictionary ImageDataSettings {
-  PredefinedColorSpaceEnum colorSpace = "srgb";
+  PredefinedColorSpaceEnum colorSpace;
 };
 </pre>
 
@@ -180,15 +167,14 @@ IDL:
 <pre>
 partial interface ImageData {
   constructor(unsigned long sw, unsigned long sh, optional ImageDataSettings);
-  constructor(ImageDataArray data, unsigned long sw, unsigned long sh, optional ImageDataSettings);
-  readonly ImageDataSettings getImageDataSettings();
-  readonly attribute ImageDataArray data;
+  constructor(Uint8ClampedArray data, unsigned long sw, unsigned long sh, optional ImageDataSettings);
+  readonly attribute PredefinedColorSpace colorSpace;
 };
 </pre>
 
-The changes to this interface are:
-* The constructors now take an optional `ImageDataSettings` dictionary.
-* The ImageDataSettings attribute may be queried using `getImageDataSettings`.
+The changes to this interface are that the constructors now take an optional `ImageDataSettings` dictionary.
+If this dictionary is specified and has a `colorSpace` entry, then the resulting `ImageData` will be created with the specified color space.
+If no dictionary is specified, or the specified dictionary does not specify a `colorSpace` entry, then the resulting `ImageData` will be created as ``"srgb"``.
 
 When an ``ImageData`` is used in a canvas (e.g, in ``putImageData``), the data is converted from the ``ImageData``'s color space to the color space of the canvas.
 
@@ -200,7 +186,9 @@ partial interface CanvasRenderingContext2D {
 }
 </pre>
 
-The changes to this interface are the addion of the optional ``ImageDataSettings`` argument. If this argument is unspecified, then the default value of ``colorSpace="srgb"`` will be used (this default match previous behavior).
+The changes to this interface are the addition of the optional `ImageDataSettings` argument.
+If this dictionary is specified and has a `colorSpace` entry, then the resulting `ImageData` will be created with the specified color space.
+If no dictionary is specified, or the specified dictionary does not specify a `colorSpace` entry, then the resulting `ImageData` will default to using the same color space as the `CanvasRenderingContext2D` that the method is called on.
 
 The ``getImageData`` method is responsible for converting the data from the canvas' internal format to the format requested in the ``ImageDataSettings``.
 
